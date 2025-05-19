@@ -59,6 +59,9 @@
 ### Quality Assurance
 - 🔄 Improve test coverage (unit and integration tests)
 
+### Infrastructure
+- 🔄 Deployment preparation and CI/CD setup
+
 ## 📋 IMPLEMENTATION ROADMAP
 
 ### Short-term (1-2 Months)

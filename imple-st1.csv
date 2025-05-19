@@ -25,6 +25,7 @@ Done,Redis Connection,Cloud Redis configuration,High,Medium,Completed,None,Team
 In Progress,Email Verification,Verify new user accounts via email,High,Medium,2 weeks,User Authentication,Unassigned
 In Progress,Password Reset,Secure password recovery workflow,High,Medium,2 weeks,User Authentication,Unassigned
 In Progress,Test Coverage,Improve unit and integration tests,High,High,3 weeks,All Features,Unassigned
+In Progress,Deployment Setup,Prepare CI/CD and production environment,High,Medium,2 weeks,None,Unassigned
 To Do,Book Recommendations,Basic recommendation system,Medium,High,3 weeks,Book Search,Unassigned
 To Do,Social Sharing,Share public collections,Low,Medium,2 weeks,User Collections,Unassigned
 To Do,Collection Export,Export to PDF/CSV formats,Low,Medium,1 week,User Collections,Unassigned
