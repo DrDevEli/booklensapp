@@ -79,10 +79,44 @@ router.post('/2fa/disable', authMiddleware(), AuthController.disableTwoFactor);
 // Password reset routes
 router.post('/forgot-password', AuthController.requestPasswordReset);
 router.post('/reset-password', AuthController.resetPassword);
+router.get('/validate-reset-token/:token', async (req, res, next) => {
+  try {
+    const { token } = req.params;
+    const isValid = await passwordResetController.validateResetToken(token);
+    
+    res.status(200).json({
+      success: true,
+      isValid
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 
 // Email verification
 router.get('/verify-email/:token', AuthController.verifyEmail);
 router.post('/resend-verification', authMiddleware(), AuthController.resendVerificationEmail);
+router.post('/resend-verification-public', async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email is required'
+      });
+    }
+    
+    await emailVerificationController.resendVerificationEmail(email);
+    
+    res.status(200).json({
+      success: true,
+      message: 'If your email is registered and not verified, a verification email has been sent'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 
 // Token refresh route
 router.post('/refresh', AuthController.refreshTokens);

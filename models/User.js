@@ -25,6 +25,14 @@ const userSchema = new mongoose.Schema({
       message: 'Password must be at least 12 characters and contain uppercase, lowercase, numbers and special characters'
     }
   },
+  emailVerified: {
+    type: Boolean,
+    default: false
+  },
+  emailVerificationToken: String,
+  emailVerificationExpires: Date,
+  resetPasswordToken: String,
+  resetPasswordExpires: Date,
   passwordHistory: [{
     hash: String,
     changedAt: Date

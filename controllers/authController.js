@@ -7,6 +7,8 @@ import { ApiError } from '../utils/errors.js';
 import { generateTokens } from '../utils/jwtUtils.js';
 import { isJwtBlacklisted } from '../utils/authRedisUtils.js';
 import logger from '../utils/logger.js';
+import * as emailVerificationController from './emailVerificationController.js';
+import * as passwordResetController from './passwordResetController.js';
 
 class AuthController {
   static async requestPasswordReset(req, res, next) {
@@ -17,28 +19,8 @@ class AuthController {
         throw new ApiError(400, 'Email is required');
       }
       
-      const user = await User.findOne({ email });
-      
-      // Don't reveal if user exists or not
-      if (!user) {
-        logger.info('Password reset requested for non-existent email', { email });
-        return res.status(200).json({
-          success: true,
-          message: 'If your email is registered, you will receive a password reset link'
-        });
-      }
-      
-      // Generate reset token
-      const resetToken = crypto.randomBytes(32).toString('hex');
-      user.resetPasswordToken = resetToken;
-      user.resetPasswordExpires = Date.now() + 60 * 60 * 1000; // 1 hour
-      await user.save();
-      
-      // Send reset email (implementation would be in a separate service)
-      // const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
-      // await emailService.sendPasswordResetEmail(user.email, resetUrl);
-      
-      logger.info('Password reset requested', { userId: user._id });
+      // Use the password reset controller to handle the request
+      await passwordResetController.requestPasswordReset(email);
       
       res.status(200).json({
         success: true,
@@ -58,25 +40,10 @@ class AuthController {
         throw new ApiError(400, 'Token and new password are required');
       }
       
-      const user = await User.findOne({
-        resetPasswordToken: token,
-        resetPasswordExpires: { $gt: Date.now() }
-      });
+      // Use the password reset controller to handle the reset
+      await passwordResetController.resetPassword(token, newPassword);
       
-      if (!user) {
-        throw new ApiError(400, 'Invalid or expired token');
-      }
-      
-      // Update password
-      user.password = newPassword;
-      user.resetPasswordToken = undefined;
-      user.resetPasswordExpires = undefined;
-      await user.save();
-      
-      // Invalidate all existing tokens
-      // Implementation would depend on your token management strategy
-      
-      logger.info('Password reset successful', { userId: user._id });
+      logger.info('Password reset successful');
       
       res.status(200).json({
         success: true,
@@ -290,22 +257,10 @@ class AuthController {
     try {
       const { token } = req.params;
       
-      const user = await User.findOne({
-        emailVerificationToken: token,
-        emailVerificationExpires: { $gt: Date.now() }
-      });
+      // Use the email verification controller to handle the verification
+      await emailVerificationController.verifyEmail(token);
       
-      if (!user) {
-        throw new ApiError(400, 'Invalid or expired verification token');
-      }
-      
-      // Mark email as verified
-      user.emailVerified = true;
-      user.emailVerificationToken = undefined;
-      user.emailVerificationExpires = undefined;
-      await user.save();
-      
-      logger.info('Email verified', { userId: user._id });
+      logger.info('Email verified');
       
       res.redirect(`${process.env.FRONTEND_URL}/login?verified=true`);
     } catch (error) {
@@ -330,15 +285,8 @@ class AuthController {
         });
       }
       
-      // Generate new verification token
-      const verificationToken = crypto.randomBytes(32).toString('hex');
-      user.emailVerificationToken = verificationToken;
-      user.emailVerificationExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
-      await user.save();
-      
-      // Send verification email (implementation would be in a separate service)
-      // const verificationUrl = `${process.env.API_URL}/auth/verify-email/${verificationToken}`;
-      // await emailService.sendVerificationEmail(user.email, verificationUrl);
+      // Use the email verification controller to resend the email
+      await emailVerificationController.sendVerificationEmail(user);
       
       logger.info('Verification email resent', { userId });
       
