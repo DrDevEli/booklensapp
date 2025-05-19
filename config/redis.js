@@ -1,5 +1,20 @@
 import Redis from 'ioredis';
 import logger from '../utils/logger.js';
+import { getEnvConfig } from '../utils/envValidator.js';
+
+// Get Redis configuration from environment
+const redisConfig = getEnvConfig({
+  REDIS_HOST: { default: 'localhost' },
+  REDIS_PORT: { type: 'number', default: 6379 },
+  REDIS_PASSWORD: { default: '' },
+  REDIS_USERNAME: { default: '' },
+  REDIS_DB: { type: 'number', default: 0 },
+  REDIS_TLS_ENABLED: { type: 'boolean', default: false },
+  REDIS_CONNECT_TIMEOUT: { type: 'number', default: 5000 },
+  REDIS_MAX_RETRIES: { type: 'number', default: 3 },
+  REDIS_RETRY_DELAY: { type: 'number', default: 1000 },
+  NODE_ENV: { default: 'development' }
+});
 
 // Create a mock Redis client for development if Redis is not available
 class MockRedis {
@@ -93,17 +108,25 @@ let redis;
 
 try {
   const redisOptions = {
-    host: process.env.REDIS_HOST || 'localhost',
-    port: process.env.REDIS_PORT || 6379,
-    password: process.env.REDIS_PASSWORD,
+    host: redisConfig.REDIS_HOST,
+    port: redisConfig.REDIS_PORT,
+    username: redisConfig.REDIS_USERNAME || undefined,
+    password: redisConfig.REDIS_PASSWORD || undefined,
+    db: redisConfig.REDIS_DB,
     enableOfflineQueue: false,
     retryStrategy: (times) => {
-      const delay = Math.min(times * 100, 3000);
+      if (times > redisConfig.REDIS_MAX_RETRIES) {
+        logger.error('Redis connection failed after maximum retries');
+        return null; // Stop retrying
+      }
+      const delay = Math.min(times * redisConfig.REDIS_RETRY_DELAY, 3000);
       logger.info(`Redis retry attempt ${times} in ${delay}ms`);
       return delay;
     },
-    maxRetriesPerRequest: 3,
-    connectTimeout: 5000
+    maxRetriesPerRequest: redisConfig.REDIS_MAX_RETRIES,
+    connectTimeout: redisConfig.REDIS_CONNECT_TIMEOUT,
+    tls: redisConfig.REDIS_TLS_ENABLED ? {} : undefined,
+    keyPrefix: redisConfig.NODE_ENV === 'test' ? 'test:' : '',
   };
 
   redis = new Redis(redisOptions);
