@@ -35,6 +35,8 @@ export function validateRedisConfig() {
     return false;
   }
   
+  // Username is hardcoded in the Redis config, so we don't check it here
+  
   return true;
 }
 

@@ -59,11 +59,24 @@ app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(passport.initialize());
 
 // Basic health check route
-app.get('/health', (req, res) => {
+app.get('/health', async (req, res) => {
+  // Check Redis connection
+  let redisStatus = 'disconnected';
+  try {
+    const redis = (await import('./config/redis.js')).default;
+    await redis.ping();
+    redisStatus = 'connected';
+  } catch (error) {
+    logger.error('Redis health check failed', { error: error.message });
+  }
+  
   res.status(200).json({
     status: 'ok',
     timestamp: new Date().toISOString(),
-    mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+    mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+    redis: redisStatus,
+    environment: process.env.NODE_ENV,
+    uptime: process.uptime()
   });
 });
 
