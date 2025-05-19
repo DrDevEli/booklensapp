@@ -113,12 +113,10 @@ class MockRedis {
 let redis;
 
 try {
+  // For Redis Cloud, we need to use a URL connection string
+  const redisUrl = `redis://${encodeURIComponent('dante miguel')}:${encodeURIComponent(redisConfig.REDIS_PASSWORD)}@${redisConfig.REDIS_HOST}:${redisConfig.REDIS_PORT}/${redisConfig.REDIS_DB}`;
+  
   const redisOptions = {
-    host: redisConfig.REDIS_HOST,
-    port: redisConfig.REDIS_PORT,
-    username: 'dante miguel',
-    password: redisConfig.REDIS_PASSWORD || undefined,
-    db: redisConfig.REDIS_DB,
     enableOfflineQueue: false,
     retryStrategy: (times) => {
       if (times > redisConfig.REDIS_MAX_RETRIES) {
@@ -132,13 +130,27 @@ try {
     maxRetriesPerRequest: 1, // Reduce retries to fail faster
     connectTimeout: redisConfig.REDIS_CONNECT_TIMEOUT,
     tls: {
-      rejectUnauthorized: false // Allow self-signed certificates
+      rejectUnauthorized: false, // Allow self-signed certificates
+      servername: redisConfig.REDIS_HOST // Important for TLS validation
     },
     keyPrefix: 'booklens-cache:',
     connectionName: 'booklens-api',
   };
 
-  redis = new Redis(redisOptions);
+  // Try to connect using URL first, then fallback to options if that fails
+  try {
+    redis = new Redis(redisUrl, redisOptions);
+  } catch (error) {
+    logger.warn(`Redis URL connection failed: ${error.message}, trying with options`);
+    redis = new Redis({
+      host: redisConfig.REDIS_HOST,
+      port: redisConfig.REDIS_PORT,
+      username: 'dante miguel',
+      password: redisConfig.REDIS_PASSWORD,
+      db: redisConfig.REDIS_DB,
+      ...redisOptions
+    });
+  }
 
   redis.on('connect', () => {
     logger.info('Redis connected successfully');

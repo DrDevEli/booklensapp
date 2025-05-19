@@ -2,11 +2,33 @@ import redis from '../config/redis.js';
 import logger from './logger.js';
 
 const DEFAULT_TTL = 3600; // 1 hour
+const DEFAULT_PREFIX = process.env.NODE_ENV === 'test' ? 'test:' : 'booklens-cache:';
+
+// Cache statistics for monitoring
+const cacheStats = {
+  hits: 0,
+  misses: 0,
+  errors: 0,
+  sets: 0,
+  lastReset: Date.now()
+};
 
 /**
  * Cache utility for Redis operations with error handling
  */
 export const cache = {
+  // Cache statistics methods
+  stats: {
+    get: () => ({ ...cacheStats }),
+    reset: () => {
+      cacheStats.hits = 0;
+      cacheStats.misses = 0;
+      cacheStats.errors = 0;
+      cacheStats.sets = 0;
+      cacheStats.lastReset = Date.now();
+      return { ...cacheStats };
+    }
+  },
   /**
    * Get a value from cache
    * @param {string} key - Cache key
@@ -14,15 +36,22 @@ export const cache = {
    */
   get: async (key) => {
     try {
-      const value = await redis.get(key);
-      if (!value) return null;
+      const prefixedKey = key.startsWith(DEFAULT_PREFIX) ? key : `${DEFAULT_PREFIX}${key}`;
+      const value = await redis.get(prefixedKey);
       
+      if (!value) {
+        cacheStats.misses++;
+        return null;
+      }
+      
+      cacheStats.hits++;
       try {
         return JSON.parse(value);
       } catch (e) {
         return value; // Return as-is if not JSON
       }
     } catch (error) {
+      cacheStats.errors++;
       logger.error('Cache get error', { key, error: error.message });
       return null;
     }
@@ -37,10 +66,18 @@ export const cache = {
    */
   set: async (key, value, ttl = DEFAULT_TTL) => {
     try {
+      // Don't cache null or undefined values
+      if (value === null || value === undefined) {
+        return false;
+      }
+      
+      const prefixedKey = key.startsWith(DEFAULT_PREFIX) ? key : `${DEFAULT_PREFIX}${key}`;
       const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
-      await redis.set(key, stringValue, 'EX', ttl);
+      await redis.set(prefixedKey, stringValue, 'EX', ttl);
+      cacheStats.sets++;
       return true;
     } catch (error) {
+      cacheStats.errors++;
       logger.error('Cache set error', { key, error: error.message });
       return false;
     }
@@ -121,10 +158,41 @@ export const cache = {
    */
   exists: async (key) => {
     try {
-      const result = await redis.exists(key);
+      const prefixedKey = key.startsWith(DEFAULT_PREFIX) ? key : `${DEFAULT_PREFIX}${key}`;
+      const result = await redis.exists(prefixedKey);
       return result === 1;
     } catch (error) {
       logger.error('Cache exists error', { key, error: error.message });
+      return false;
+    }
+  },
+  
+  /**
+   * Create a prefixed cache key
+   * @param {string} key - Base key
+   * @param {string} namespace - Optional namespace
+   * @returns {string} - Prefixed key
+   */
+  key: (key, namespace = '') => {
+    return namespace ? `${DEFAULT_PREFIX}${namespace}:${key}` : `${DEFAULT_PREFIX}${key}`;
+  },
+  
+  /**
+   * Flush all keys with the current prefix
+   * @returns {Promise<boolean>} - Success status
+   */
+  flushPrefix: async () => {
+    try {
+      const keys = await redis.keys(`${DEFAULT_PREFIX}*`);
+      
+      if (keys.length > 0) {
+        await redis.del(...keys);
+        logger.info(`Flushed ${keys.length} keys with prefix ${DEFAULT_PREFIX}`);
+      }
+      
+      return true;
+    } catch (error) {
+      logger.error('Cache flush error', { error: error.message });
       return false;
     }
   }
