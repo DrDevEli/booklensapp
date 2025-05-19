@@ -3,6 +3,9 @@ import logger from './logger.js';
 
 const DEFAULT_TTL = 3600; // 1 hour
 
+/**
+ * Cache utility for Redis operations with error handling
+ */
 export const cache = {
   /**
    * Get a value from cache
@@ -13,7 +16,7 @@ export const cache = {
     try {
       const value = await redis.get(key);
       if (!value) return null;
-
+      
       try {
         return JSON.parse(value);
       } catch (e) {
@@ -24,7 +27,7 @@ export const cache = {
       return null;
     }
   },
-
+  
   /**
    * Set a value in cache
    * @param {string} key - Cache key
@@ -42,7 +45,7 @@ export const cache = {
       return false;
     }
   },
-
+  
   /**
    * Delete a value from cache
    * @param {string} key - Cache key
@@ -57,7 +60,7 @@ export const cache = {
       return false;
     }
   },
-
+  
   /**
    * Set multiple cache entries with the same TTL
    * @param {Object} entries - Key-value pairs to cache
@@ -67,16 +70,61 @@ export const cache = {
   mset: async (entries, ttl = DEFAULT_TTL) => {
     try {
       const pipeline = redis.pipeline();
-
+      
       for (const [key, value] of Object.entries(entries)) {
         const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
         pipeline.set(key, stringValue, 'EX', ttl);
       }
-
+      
       await pipeline.exec();
       return true;
     } catch (error) {
       logger.error('Cache mset error', { error: error.message });
+      return false;
+    }
+  },
+  
+  /**
+   * Get multiple values from cache
+   * @param {Array<string>} keys - Array of cache keys
+   * @returns {Promise<Object>} - Object with key-value pairs
+   */
+  mget: async (keys) => {
+    try {
+      const values = await redis.mget(keys);
+      const result = {};
+      
+      keys.forEach((key, index) => {
+        const value = values[index];
+        if (value) {
+          try {
+            result[key] = JSON.parse(value);
+          } catch (e) {
+            result[key] = value;
+          }
+        } else {
+          result[key] = null;
+        }
+      });
+      
+      return result;
+    } catch (error) {
+      logger.error('Cache mget error', { keys, error: error.message });
+      return {};
+    }
+  },
+  
+  /**
+   * Check if a key exists in cache
+   * @param {string} key - Cache key
+   * @returns {Promise<boolean>} - True if key exists
+   */
+  exists: async (key) => {
+    try {
+      const result = await redis.exists(key);
+      return result === 1;
+    } catch (error) {
+      logger.error('Cache exists error', { key, error: error.message });
       return false;
     }
   }
