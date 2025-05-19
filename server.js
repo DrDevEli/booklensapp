@@ -9,7 +9,7 @@ import authRoutes from './routes/authRoutes.js';
 import bookRoutes from './routes/bookRoutes.js';
 import logger from './utils/logger.js';
 import securityMiddleware from './middleware/security.js';
-import { validateEnv, getEnvConfig } from './utils/envValidator.js';
+import { validateEnv, getEnvConfig, validateRedisConfig } from './utils/envValidator.js';
 
 // Load environment variables
 dotenv.config();
@@ -102,9 +102,7 @@ const connectWithRetry = async (retryCount = 5, delay = 5000) => {
       socketTimeoutMS: 45000,
       family: 4, // Use IPv4, skip trying IPv6
       maxPoolSize: 10,
-      minPoolSize: 2,
-      keepAlive: true,
-      keepAliveInitialDelay: 300000
+      minPoolSize: 2
     };
     
     await mongoose.connect(config.MONGODB_URI, mongooseOptions);
@@ -163,6 +161,12 @@ const startServer = () => {
 
 // Initialize application
 (async () => {
+  // Validate Redis configuration
+  const redisConfigValid = validateRedisConfig();
+  if (!redisConfigValid) {
+    logger.warn('Redis configuration is invalid. Cache features may not work properly.');
+  }
+  
   // Try to connect to MongoDB but don't block server startup
   connectWithRetry().then(connected => {
     if (!connected) {

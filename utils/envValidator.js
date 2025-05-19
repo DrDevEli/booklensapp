@@ -17,6 +17,28 @@ export function validateEnv(requiredVars = []) {
 }
 
 /**
+ * Validates Redis connection configuration
+ * @returns {boolean} - True if configuration is valid
+ */
+export function validateRedisConfig() {
+  const redisHost = process.env.REDIS_HOST;
+  const redisPort = process.env.REDIS_PORT;
+  const redisPassword = process.env.REDIS_PASSWORD;
+  
+  if (!redisHost || !redisPort) {
+    logger.warn('Redis host or port not configured properly');
+    return false;
+  }
+  
+  if (!redisPassword) {
+    logger.warn('Redis password not configured');
+    return false;
+  }
+  
+  return true;
+}
+
+/**
  * Validates and returns environment variables with defaults
  * @param {Object} config - Configuration object with variable names and default values
  * @returns {Object} - Object with validated environment variables

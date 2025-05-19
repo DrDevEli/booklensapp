@@ -110,7 +110,6 @@ try {
   const redisOptions = {
     host: redisConfig.REDIS_HOST,
     port: redisConfig.REDIS_PORT,
-    username: redisConfig.REDIS_USERNAME || undefined,
     password: redisConfig.REDIS_PASSWORD || undefined,
     db: redisConfig.REDIS_DB,
     enableOfflineQueue: false,
@@ -126,7 +125,8 @@ try {
     maxRetriesPerRequest: redisConfig.REDIS_MAX_RETRIES,
     connectTimeout: redisConfig.REDIS_CONNECT_TIMEOUT,
     tls: redisConfig.REDIS_TLS_ENABLED ? {} : undefined,
-    keyPrefix: redisConfig.NODE_ENV === 'test' ? 'test:' : '',
+    keyPrefix: 'booklens-cache:',
+    connectionName: 'booklens-api',
   };
 
   redis = new Redis(redisOptions);
