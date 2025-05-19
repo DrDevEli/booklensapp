@@ -1,0 +1,395 @@
+import speakeasy from 'speakeasy';
+import crypto from 'crypto';
+import jwt from 'jsonwebtoken';
+import mongoose from 'mongoose';
+import User from '../models/User.js';
+import { ApiError } from '../utils/errors.js';
+import { generateTokens } from '../utils/jwtUtils.js';
+import { isJwtBlacklisted } from '../utils/authRedisUtils.js';
+import logger from '../utils/logger.js';
+
+class AuthController {
+  static async requestPasswordReset(req, res, next) {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        throw new ApiError(400, 'Email is required');
+      }
+      
+      const user = await User.findOne({ email });
+      
+      // Don't reveal if user exists or not
+      if (!user) {
+        logger.info('Password reset requested for non-existent email', { email });
+        return res.status(200).json({
+          success: true,
+          message: 'If your email is registered, you will receive a password reset link'
+        });
+      }
+      
+      // Generate reset token
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      user.resetPasswordToken = resetToken;
+      user.resetPasswordExpires = Date.now() + 60 * 60 * 1000; // 1 hour
+      await user.save();
+      
+      // Send reset email (implementation would be in a separate service)
+      // const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
+      // await emailService.sendPasswordResetEmail(user.email, resetUrl);
+      
+      logger.info('Password reset requested', { userId: user._id });
+      
+      res.status(200).json({
+        success: true,
+        message: 'If your email is registered, you will receive a password reset link'
+      });
+    } catch (error) {
+      logger.error('Password reset request error', { email: req.body?.email, error: error.message });
+      next(error);
+    }
+  }
+  
+  static async resetPassword(req, res, next) {
+    try {
+      const { token, newPassword } = req.body;
+      
+      if (!token || !newPassword) {
+        throw new ApiError(400, 'Token and new password are required');
+      }
+      
+      const user = await User.findOne({
+        resetPasswordToken: token,
+        resetPasswordExpires: { $gt: Date.now() }
+      });
+      
+      if (!user) {
+        throw new ApiError(400, 'Invalid or expired token');
+      }
+      
+      // Update password
+      user.password = newPassword;
+      user.resetPasswordToken = undefined;
+      user.resetPasswordExpires = undefined;
+      await user.save();
+      
+      // Invalidate all existing tokens
+      // Implementation would depend on your token management strategy
+      
+      logger.info('Password reset successful', { userId: user._id });
+      
+      res.status(200).json({
+        success: true,
+        message: 'Password reset successful. You can now log in with your new password.'
+      });
+    } catch (error) {
+      logger.error('Password reset error', { error: error.message });
+      next(error);
+    }
+  }
+  static async setupTwoFactor(req, res, next) {
+    try {
+      const userId = req.user.id;
+      
+      // Generate real 2FA secret
+      const secret = speakeasy.generateSecret({
+        name: `BookApp:${req.user.email}`,
+        issuer: 'BookApp'
+      });
+
+      // Generate recovery codes
+      const recoveryCodes = Array(5).fill().map(() => 
+        crypto.randomBytes(5).toString('hex').toUpperCase()
+      );
+      
+      // Save secret to user
+      await User.findByIdAndUpdate(userId, {
+        twoFactorSecret: secret.base32
+      });
+      
+      // Generate QR code
+      // In a real implementation, this would be a data URL containing the QR code image
+      const qrCodeUrl = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
+      
+      res.status(200).json({
+        success: true,
+        data: {
+          secret: secret.base32,
+          qrCode: qrCodeUrl
+        }
+      });
+    } catch (error) {
+      logger.error('2FA setup error', { userId: req.user.id, error: error.message });
+      next(error);
+    }
+  }
+  
+  static async verifyAndEnableTwoFactor(req, res, next) {
+    try {
+      const { token } = req.body;
+      const userId = req.user.id;
+      
+      const user = await User.findById(userId).select('+twoFactorSecret');
+      
+      if (!user) {
+        throw new ApiError(404, 'User not found');
+      }
+      
+      // Verify token using speakeasy
+      const verified = speakeasy.totp.verify({
+        secret: user.twoFactorSecret,
+        encoding: 'base32',
+        token: token,
+        window: 1 // Allow 1 step (30s) before/after current time
+      });
+      
+      if (!verified) {
+        logger.warn('Failed 2FA verification attempt', { userId });
+        throw new ApiError(400, 'Invalid verification code');
+      }
+      
+      // Enable 2FA
+      user.twoFactorEnabled = true;
+      await user.save();
+      
+      logger.info('Two-factor authentication enabled', { userId });
+      
+      res.status(200).json({
+        success: true,
+        message: 'Two-factor authentication enabled'
+      });
+    } catch (error) {
+      logger.error('2FA verification error', { userId: req.user?.id, error: error.message });
+      next(error);
+    }
+  }
+  
+  static async verifyTwoFactor(req, res, next) {
+    try {
+      const { token, userId } = req.body;
+      
+      if (!token || !userId) {
+        throw new ApiError(400, 'Verification code and user ID are required');
+      }
+      
+      const user = await User.findById(userId).select('+twoFactorSecret');
+      if (!user) {
+        throw new ApiError(404, 'User not found');
+      }
+      
+      // Verify token using speakeasy
+      const verified = speakeasy.totp.verify({
+        secret: user.twoFactorSecret,
+        encoding: 'base32',
+        token: token,
+        window: 1 // Allow 1 step (30s) before/after current time
+      });
+      
+      if (!verified) {
+        logger.warn('Failed 2FA login attempt', { userId });
+        throw new ApiError(401, 'Invalid verification code');
+      }
+      
+      // Generate tokens
+      const { accessToken, refreshToken } = generateTokens(user._id, user.role);
+      
+      // Log successful 2FA login
+      const AuditLog = mongoose.model('AuditLog');
+      await AuditLog.logAction(userId, 'login_success', {
+        twoFactorUsed: true
+      }, req);
+      
+      logger.info('User logged in with 2FA', { userId });
+      
+      res.status(200).json({
+        success: true,
+        accessToken,
+        refreshToken,
+        user: {
+          id: user._id,
+          username: user.username,
+          email: user.email,
+          role: user.role
+        }
+      });
+    } catch (error) {
+      logger.error('2FA login verification error', { userId: req.body.userId, error: error.message });
+      next(error);
+    }
+  }
+  static async refreshTokens(req, res, next) {
+    try {
+      const { refreshToken } = req.body;
+      
+      if (!refreshToken) {
+        throw new ApiError(400, 'Refresh token is required');
+      }
+      
+      // Verify refresh token
+      const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET, {
+        algorithms: ['HS256']
+      });
+      
+      // Check if token is blacklisted
+      if (await isJwtBlacklisted(decoded.jti)) {
+        throw new ApiError(401, 'Token revoked');
+      }
+      
+      // Generate new tokens
+      const { accessToken, refreshToken: newRefreshToken } = generateTokens(decoded.sub, decoded.role);
+      
+      // Blacklist old refresh token
+      const redis = require('../utils/redis.js').default;
+      await redis.set(
+        `jwt:blacklist:${decoded.jti}`, 
+        '1', 
+        'EX', 
+        parseInt(process.env.JWT_REFRESH_EXPIRES_IN) || 604800
+      );
+      
+      logger.info('Tokens refreshed', { userId: decoded.sub });
+      
+      res.status(200).json({
+        success: true,
+        accessToken,
+        refreshToken: newRefreshToken
+      });
+    } catch (error) {
+      if (error.name === 'TokenExpiredError') {
+        next(new ApiError(401, 'Refresh token expired'));
+      } else if (error.name === 'JsonWebTokenError') {
+        next(new ApiError(401, 'Invalid refresh token'));
+      } else {
+        next(error);
+      }
+    }
+  }
+  
+  static async logoutAll(req, res, next) {
+    try {
+      const userId = req.user.id;
+      
+      // Update user's tokenVersion to invalidate all tokens
+      await User.findByIdAndUpdate(userId, { 
+        $inc: { tokenVersion: 1 } 
+      });
+      
+      logger.info('User logged out from all devices', { userId });
+      
+      res.status(200).json({
+        success: true,
+        message: 'Logged out from all devices successfully'
+      });
+    } catch (error) {
+      logger.error('Logout all error', { userId: req.user?.id, error: error.message });
+      next(error);
+    }
+  }
+  
+  static async verifyEmail(req, res, next) {
+    try {
+      const { token } = req.params;
+      
+      const user = await User.findOne({
+        emailVerificationToken: token,
+        emailVerificationExpires: { $gt: Date.now() }
+      });
+      
+      if (!user) {
+        throw new ApiError(400, 'Invalid or expired verification token');
+      }
+      
+      // Mark email as verified
+      user.emailVerified = true;
+      user.emailVerificationToken = undefined;
+      user.emailVerificationExpires = undefined;
+      await user.save();
+      
+      logger.info('Email verified', { userId: user._id });
+      
+      res.redirect(`${process.env.FRONTEND_URL}/login?verified=true`);
+    } catch (error) {
+      logger.error('Email verification error', { token: req.params?.token, error: error.message });
+      next(error);
+    }
+  }
+  
+  static async resendVerificationEmail(req, res, next) {
+    try {
+      const userId = req.user.id;
+      
+      const user = await User.findById(userId);
+      if (!user) {
+        throw new ApiError(404, 'User not found');
+      }
+      
+      if (user.emailVerified) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email is already verified'
+        });
+      }
+      
+      // Generate new verification token
+      const verificationToken = crypto.randomBytes(32).toString('hex');
+      user.emailVerificationToken = verificationToken;
+      user.emailVerificationExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+      await user.save();
+      
+      // Send verification email (implementation would be in a separate service)
+      // const verificationUrl = `${process.env.API_URL}/auth/verify-email/${verificationToken}`;
+      // await emailService.sendVerificationEmail(user.email, verificationUrl);
+      
+      logger.info('Verification email resent', { userId });
+      
+      res.status(200).json({
+        success: true,
+        message: 'Verification email has been sent'
+      });
+    } catch (error) {
+      logger.error('Resend verification email error', { userId: req.user?.id, error: error.message });
+      next(error);
+    }
+  }
+  
+  static async disableTwoFactor(req, res, next) {
+    try {
+      const { password } = req.body;
+      const userId = req.user.id;
+      
+      if (!password) {
+        throw new ApiError(400, 'Password is required to disable 2FA');
+      }
+      
+      const user = await User.findById(userId).select('+password');
+      
+      if (!user) {
+        throw new ApiError(404, 'User not found');
+      }
+      
+      // Verify password
+      const isMatch = await user.comparePassword(password);
+      if (!isMatch) {
+        logger.warn('Failed 2FA disable attempt - incorrect password', { userId });
+        throw new ApiError(401, 'Invalid password');
+      }
+      
+      // Disable 2FA
+      user.twoFactorEnabled = false;
+      user.twoFactorSecret = undefined;
+      await user.save();
+      
+      logger.info('Two-factor authentication disabled', { userId });
+      
+      res.status(200).json({
+        success: true,
+        message: 'Two-factor authentication disabled'
+      });
+    } catch (error) {
+      logger.error('Disable 2FA error', { userId: req.user?.id, error: error.message });
+      next(error);
+    }
+  }
+}
+
+export default AuthController;

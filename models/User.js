@@ -4,12 +4,7 @@ import * as openpgp from "openpgp";
 import AuditLog from "./AuditLog.js";
 
 const userSchema = new mongoose.Schema({
-  username: {
-    type: String,
-    required: true,
-    unique: true,
-    trim: true
-  },
+  username: { type: String, required: true, unique: true, trim: true },
   email: {
     type: String,
     required: true,
@@ -24,9 +19,10 @@ const userSchema = new mongoose.Schema({
     minlength: 12,
     validate: {
       validator: function (v) {
-        return /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*]).{12,}$/.test(v);
+        // Check for at least one uppercase, one lowercase, one number, one special char, and min length 12
+        return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{12,}$/.test(v);
       },
-      message: 'Password must contain uppercase, lowercase, numbers and special chars'
+      message: 'Password must be at least 12 characters and contain uppercase, lowercase, numbers and special characters'
     }
   },
   passwordHistory: [{
@@ -44,7 +40,6 @@ const userSchema = new mongoose.Schema({
     type: String,
     trim: true,
     select: false,
-    encrypt: true, // Add encryption at rest
     validate: {
       validator: async function (v) {
         try {
@@ -63,13 +58,38 @@ const userSchema = new mongoose.Schema({
     match: /^[0-9A-F]{40}$/,
     index: true
   },
-  subscriptionTier: { 
-    type: String, 
-    enum: ['free', 'pro'], 
-    default: 'free' },
-    tokenVersion: { type: Number, default: 0 },
-
+  subscriptionTier: {
+    type: String,
+    enum: ['free', 'pro'],
+    default: 'free'
+  },
+  tokenVersion: { type: Number, default: 0 },
+  
+  preferences: {
+    type: Object,
+    default: {
+      theme: 'light',
+      booksPerPage: 10,
+      defaultSearchType: 'title'
+    }
+  },
+  
+  twoFactorEnabled: {
+    type: Boolean,
+    default: false
+  },
+  twoFactorSecret: {
+    type: String,
+    select: false
+  },
+  
+  oauth: {
+    google: String,
+    github: String
+  }
 });
+
+// Indexes are already defined in the schema with unique: true
 
 // Audit logging middleware
 userSchema.post('save', function (doc) {
@@ -85,8 +105,28 @@ userSchema.post('save', function (doc) {
 // Hash password before saving
 userSchema.pre('save', async function (next) {
   if (this.isModified('password')) {
+    // Store the old password in history if it exists
+    if (this.password) {
+      if (!this.passwordHistory) {
+        this.passwordHistory = [];
+      }
+      
+      // Keep only the last 5 passwords
+      if (this.passwordHistory.length >= 5) {
+        this.passwordHistory.shift();
+      }
+      
+      this.passwordHistory.push({
+        hash: this.password,
+        changedAt: new Date()
+      });
+    }
+    
+    // Hash the new password
     this.password = await bcrypt.hash(this.password, 12);
-    this.tokenVersion += 1; // Invalidate existing JWTs
+    
+    // Increment token version to invalidate existing JWTs
+    this.tokenVersion += 1;
   }
   next();
 });
@@ -95,6 +135,22 @@ userSchema.pre('save', async function (next) {
 // Compare password method                                                                                                                
 userSchema.methods.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
+};
+
+// Check if password has been used before
+userSchema.methods.isPasswordReused = async function (newPassword) {
+  if (!this.passwordHistory || this.passwordHistory.length === 0) {
+    return false;
+  }
+  
+  // Check against password history
+  for (const historyItem of this.passwordHistory) {
+    if (await bcrypt.compare(newPassword, historyItem.hash)) {
+      return true;
+    }
+  }
+  
+  return false;
 };
 
 const User = mongoose.model('User', userSchema);

@@ -1,42 +1,90 @@
 import { RateLimiterRedis } from 'rate-limiter-flexible';
-import redisClient from '../config/redis.js';
+import redis from '../config/redis.js';
+import { ApiError } from '../utils/errors.js';
+import logger from '../utils/logger.js';
 
-/**
- * Rate limiter config:
- * - 10 points per 60 seconds
- * - 5 minutes block on exceeded points
- */
-const rateLimiter = new RateLimiterRedis({
-  storeClient: redisClient,
-  keyPrefix: 'rateLimit',
-  points: 10,
-  duration: 60,
-  blockDuration: 300,
+// Define rate limiters for different endpoints
+const loginRateLimiter = new RateLimiterRedis({
+  storeClient: redis,
+  keyPrefix: 'ratelimit:login',
+  points: 5, // 5 attempts
+  duration: 60 * 15, // per 15 minutes
+  blockDuration: 60 * 30 // Block for 30 minutes after too many attempts
 });
 
-/**
- * Custom rate limiter middleware
- * Key is based on user ID (if logged in) and/or API endpoint path.
- */
-export const rateLimiterMiddleware = (req, res, next) => {
-  // Get user ID if authenticated, else null
-  const userId = req.user ? req.user.id : null;
+const apiRateLimiter = new RateLimiterRedis({
+  storeClient: redis,
+  keyPrefix: 'ratelimit:api',
+  points: 100, // 100 requests
+  duration: 60, // per 1 minute
+});
 
-  // Use request path as part of the key (without query params)
-  const endpoint = req.path;
+// Higher limits for authenticated users
+const authenticatedRateLimiter = new RateLimiterRedis({
+  storeClient: redis,
+  keyPrefix: 'ratelimit:auth',
+  points: 300, // 300 requests
+  duration: 60, // per 1 minute
+});
 
-  // Build key string: prefix + user or IP + endpoint
-  // If userId exists, rate limit per user per endpoint,
-  // else rate limit per IP per endpoint.
-  const key = userId
-    ? `user:${userId}:${endpoint}`
-    : `ip:${req.ip}:${endpoint}`;
+// Admin users get even higher limits
+const adminRateLimiter = new RateLimiterRedis({
+  storeClient: redis,
+  keyPrefix: 'ratelimit:admin',
+  points: 1000, // 1000 requests
+  duration: 60, // per 1 minute
+});
 
-  rateLimiter.consume(key)
-    .then(() => next())
-    .catch(() => {
-      res.status(429).json({
-        error: 'Too many requests, please try again later.'
-      });
+export const rateLimiterMiddleware = async (req, res, next) => {
+  try {
+    // Determine user role and create a unique key
+    const role = req.user?.role || 'anon';
+    const key = `${role}:${req.user?.id || req.ip}:${req.method}:${req.path}`;
+    
+    // Select appropriate rate limiter based on path and authentication
+    let rateLimiter;
+    
+    if (req.path.includes('/auth/login') || req.path.includes('/users/login')) {
+      rateLimiter = loginRateLimiter;
+    } else if (role === 'chefaodacasa') {
+      rateLimiter = adminRateLimiter;
+    } else if (req.user) {
+      rateLimiter = authenticatedRateLimiter;
+    } else {
+      rateLimiter = apiRateLimiter;
+    }
+    
+    // Apply rate limiting
+    const rateLimitResult = await rateLimiter.consume(key);
+    
+    // Set rate limit headers
+    res.set({
+      'X-RateLimit-Limit': rateLimiter.points,
+      'X-RateLimit-Remaining': rateLimitResult.remainingPoints,
+      'X-RateLimit-Reset': Math.ceil(rateLimitResult.msBeforeNext / 1000)
     });
+    
+    next();
+  } catch (error) {
+    if (error.consumedPoints) {
+      logger.warn('Rate limit exceeded', { 
+        ip: req.ip, 
+        path: req.path, 
+        user: req.user?.id 
+      });
+      
+      res.status(429).set({
+        'Retry-After': Math.ceil(error.msBeforeNext / 1000)
+      }).json({
+        success: false,
+        error: 'Too many requests. Please try again later.',
+        retryAfter: `${Math.ceil(error.msBeforeNext / 1000)} seconds`
+      });
+    } else {
+      logger.error('Rate limiting error', { error: error.message });
+      next(new ApiError(500, 'Rate limiting error'));
+    }
+  }
 };
+
+export default rateLimiterMiddleware;

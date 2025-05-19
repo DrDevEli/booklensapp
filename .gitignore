@@ -1,31 +1,49 @@
-# Logs
-logs
-*.log
+# Node.js
+node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-lerna-debug.log*
-.pnpm-debug.log*
-  *.gpg
-   *.asc
-config/ssl/*.pem
+pnpm-debug.log*
+dist/
+.env
+.env.local
+.env.*.local
+*.aider
+# Logs
+logs
+*.log
+log/
+debug.log
+error.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor folders
+.vscode/
+.idea/
+*.sublime-workspace
+
+# Build output
+coverage/
+build/
+tmp/
+temp/
 
 # Dependency directories
-node_modules/
-jspm_packages/
+.babel_cache/
+.cache/
+.next/
+out/
+.parcel-cache/
 
 # Optional npm cache directory
-.npm
+.npm/
 
-# Stores VSCode versions used for testing VSCode extensions
-.vscode-test
+# Optional eslint cache
+.eslintcache
 
-# yarn v2
-.yarn/cache
-.yarn/unplugged
-.yarn/build-state.yml
-.yarn/install-state.gz
-.pnp.*
-.DS_Store
-.aider*
-.env
+# OpenAI credentials and generated secrets
+openai.key
+openai.log

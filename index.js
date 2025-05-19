@@ -1,6 +1,22 @@
-// Must be first to load environment variables
+// Must be first to load and validate environment variables
 import dotenv from 'dotenv';
+import { cleanEnv, str, num, url } from 'envalid';
+
 dotenv.config();
+
+const env = cleanEnv(process.env, {
+  MONGODB_URI: str(),
+  PORT: num({ default: 3323 }),
+  JWT_SECRET: str({desc: '32+ character secret for JWT signing'}),
+  JWT_EXPIRES_IN: str({ default: '1h' }),
+  JWT_REFRESH_SECRET: str({ default: process.env.JWT_SECRET }),
+  JWT_REFRESH_EXPIRES_IN: str({ default: '7d' }),
+  SESSION_SECRET: str(),
+  NODE_ENV: str({ choices: ['development', 'production', 'test'] }),
+  REDIS_HOST: str({ default: 'localhost' }),
+  REDIS_PORT: num({ default: 6379 }),
+  FRONTEND_URL: url({ default: 'http://localhost:3000' })
+});
 
 // Core modules
 import fs from 'fs';
@@ -19,15 +35,19 @@ import helmet from 'helmet';
 // Auth and Models
 import passport from './config/passport.js';
 import rateLimiterMiddleware from './middleware/rateLimiter.js';
-import User from './models/User.js';
-import { Book, Wishlist, Order } from './models/index.js';
 
 // Routes
 import bookRoutes from './routes/bookRoutes.js';
 import userRoutes from './routes/userRoutes.js';
+import authRoutes from './routes/authRoutes.js';
+import collectionRoutes from './routes/collectionRoutes.js';
 
 // MongoDB
 import mongoose from 'mongoose';
+import logger, { requestLogger } from './utils/logger.js';
+import User from './models/User.js';
+import Book from './models/Book.js';
+import BookCollection from './models/BookCollection.js';
 
 
 const app = express();
@@ -38,12 +58,35 @@ const NODE_ENV = process.env.NODE_ENV || 'development';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI, {
+// Connect to MongoDB with enhanced configuration
+const mongoOptions = {
   useNewUrlParser: true,
   useUnifiedTopology: true,
-}).then(() => console.log('✅ MongoDB connected'))
-  .catch(err => console.error('❌ MongoDB connection error:', err));
+  serverSelectionTimeoutMS: 5000,
+  maxPoolSize: 10,
+  retryWrites: true,
+  w: 'majority'
+};
+
+mongoose.connect(process.env.MONGODB_URI, mongoOptions)
+  .then(() => {
+    console.log('✅ MongoDB connected');
+    // Verify indexes on startup
+    mongoose.connection.db.collection('books').createIndex({ title: 'text' });
+  })
+  .catch(err => {
+    console.error('❌ MongoDB connection error:', err);
+    process.exit(1); // Exit on DB connection failure
+  });
+
+// MongoDB connection events
+mongoose.connection.on('disconnected', () => {
+  console.warn('⚠️ MongoDB disconnected');
+});
+
+mongoose.connection.on('reconnected', () => {
+  console.log('🔁 MongoDB reconnected');
+});
 
 // Middleware setup
 app.use(morgan('dev'));
@@ -88,9 +131,24 @@ app.use(helmet.hsts({
 // Rate limiter
 app.use('/api/', rateLimiterMiddleware);
 
+// Health check endpoint
+app.get('/health', (req, res) => {
+  const status = mongoose.connection.readyState === 1 ? 'healthy' : 'unhealthy';
+  res.json({
+    status,
+    db: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Add request logging middleware
+app.use(requestLogger);
+
 // Route handlers
 app.use('/api/books', bookRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/collections', collectionRoutes);
+app.use('/api/auth', authRoutes);
 
 // Error handler placeholder
 import errorHandler from './middleware/errorHandler.js';
