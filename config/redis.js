@@ -168,16 +168,9 @@ try {
   redisClient.on('end', () => {
     logger.warn('Redis connection closed');
   });
-    },
-    maxRetriesPerRequest: 1, // Reduce retries to fail faster
-    connectTimeout: redisConfig.REDIS_CONNECT_TIMEOUT,
-    tls: {
-      rejectUnauthorized: false, // Allow self-signed certificates
-      servername: redisConfig.REDIS_HOST // Important for TLS validation
-    },
-    keyPrefix: 'booklens-cache:',
-    connectionName: 'booklens-api',
-  };
+
+  return redisClient;
+} catch (error) {
 
   // Try to connect using URL first, then fallback to options if that fails
   try {
@@ -220,9 +213,8 @@ try {
     logger.warn(`Redis ping failed: ${error.message}, falling back to mock implementation`);
     redis = new MockRedis();
   }
-} catch (error) {
   logger.warn('Failed to initialize Redis, using mock implementation', { error: error.message });
-  redis = new MockRedis();
+  return new MockRedis();
 }
 
 export default redis;
