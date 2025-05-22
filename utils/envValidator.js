@@ -1,5 +1,7 @@
-import { ApiError } from './errors.js';
+import { ApiError, ValidationError } from './errors.js';
 import logger from './logger.js';
+import { isIP } from 'net';
+import validator from 'validator';
 
 /**
  * Validates required environment variables
@@ -12,7 +14,94 @@ export function validateEnv(requiredVars = []) {
   if (missing.length > 0) {
     const errorMessage = `Missing required environment variables: ${missing.join(', ')}`;
     logger.error(errorMessage);
-    throw new Error(errorMessage);
+    throw new ValidationError(errorMessage);
+  }
+}
+
+/**
+ * Validates if environment variable contains a valid email address
+ * @param {string} varName - Environment variable name
+ * @throws {ValidationError} If value is not a valid email
+ */
+export function validateEmail(varName) {
+  const value = process.env[varName];
+  if (value && !validator.isEmail(value)) {
+    const errorMessage = `Invalid email format in ${varName}`;
+    logger.error(errorMessage);
+    throw new ValidationError(errorMessage);
+  }
+}
+
+/**
+ * Validates if environment variable contains a valid URL
+ * @param {string} varName - Environment variable name
+ * @param {Object} [options] - Validation options
+ * @throws {ValidationError} If value is not a valid URL
+ */
+export function validateUrl(varName, options = {}) {
+  const value = process.env[varName];
+  if (value && !validator.isURL(value, options)) {
+    const errorMessage = `Invalid URL format in ${varName}`;
+    logger.error(errorMessage);
+    throw new ValidationError(errorMessage);
+  }
+}
+
+/**
+ * Validates if environment variable contains a valid port number
+ * @param {string} varName - Environment variable name
+ * @throws {ValidationError} If value is not a valid port
+ */
+export function validatePort(varName) {
+  const value = process.env[varName];
+  const port = parseInt(value, 10);
+  
+  if (isNaN(port) {
+    const errorMessage = `Invalid port number in ${varName}`;
+    logger.error(errorMessage);
+    throw new ValidationError(errorMessage);
+  }
+
+  if (port < 1 || port > 65535) {
+    const errorMessage = `Port number in ${varName} must be between 1 and 65535`;
+    logger.error(errorMessage);
+    throw new ValidationError(errorMessage);
+  }
+}
+
+/**
+ * Validates if environment variable contains a valid IP address
+ * @param {string} varName - Environment variable name
+ * @throws {ValidationError} If value is not a valid IP
+ */
+export function validateIp(varName) {
+  const value = process.env[varName];
+  if (value && !isIP(value)) {
+    const errorMessage = `Invalid IP address in ${varName}`;
+    logger.error(errorMessage);
+    throw new ValidationError(errorMessage);
+  }
+}
+
+/**
+ * Validates if a numeric environment variable is within range
+ * @param {string} varName - Environment variable name
+ * @param {number} min - Minimum value
+ * @param {number} max - Maximum value
+ * @throws {ValidationError} If value is out of range
+ */
+export function validateNumericRange(varName, min, max) {
+  const value = parseFloat(process.env[varName]);
+  if (isNaN(value)) {
+    const errorMessage = `Invalid number in ${varName}`;
+    logger.error(errorMessage);
+    throw new ValidationError(errorMessage);
+  }
+
+  if (value < min || value > max) {
+    const errorMessage = `${varName} must be between ${min} and ${max}`;
+    logger.error(errorMessage);
+    throw new ValidationError(errorMessage);
   }
 }
 
@@ -21,23 +110,26 @@ export function validateEnv(requiredVars = []) {
  * @returns {boolean} - True if configuration is valid
  */
 export function validateRedisConfig() {
-  const redisHost = process.env.REDIS_HOST;
-  const redisPort = process.env.REDIS_PORT;
-  const redisPassword = process.env.REDIS_PASSWORD;
-  
-  if (!redisHost || !redisPort) {
-    logger.warn('Redis host or port not configured properly');
-    return false;
+  try {
+    const redisHost = process.env.REDIS_HOST;
+    const redisPort = process.env.REDIS_PORT;
+    const redisPassword = process.env.REDIS_PASSWORD;
+    
+    if (!redisHost) {
+      throw new ValidationError('Redis host not configured');
+    }
+    
+    validatePort('REDIS_PORT');
+    
+    if (!redisPassword) {
+      throw new ValidationError('Redis password not configured');
+    }
+    
+    return true;
+  } catch (error) {
+    logger.error('Redis configuration validation failed', { error: error.message });
+    throw error;
   }
-  
-  if (!redisPassword) {
-    logger.warn('Redis password not configured');
-    return false;
-  }
-  
-  // Username is hardcoded in the Redis config, so we don't check it here
-  
-  return true;
 }
 
 /**
