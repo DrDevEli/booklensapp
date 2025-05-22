@@ -113,19 +113,61 @@ class MockRedis {
 let redis;
 
 try {
-  // For Redis Cloud, we need to use a URL connection string
-  const redisUrl = `redis://${encodeURIComponent('dante miguel')}:${encodeURIComponent(redisConfig.REDIS_PASSWORD)}@${redisConfig.REDIS_HOST}:${redisConfig.REDIS_PORT}/${redisConfig.REDIS_DB}`;
-  
   const redisOptions = {
-    enableOfflineQueue: false,
-    retryStrategy: (times) => {
-      if (times > redisConfig.REDIS_MAX_RETRIES) {
-        logger.error('Redis connection failed after maximum retries');
-        return null; // Stop retrying
+    socket: {
+      reconnectStrategy: (retries) => {
+        const maxRetries = redisConfig.REDIS_MAX_RETRIES || 10;
+        const baseDelay = redisConfig.REDIS_RETRY_DELAY || 100;
+        
+        if (retries > maxRetries) {
+          logger.error('Redis connection failed after maximum retries');
+          return new Error('Max retries reached');
+        }
+        
+        // Exponential backoff with jitter
+        const delay = Math.min(
+          baseDelay * Math.pow(2, retries) + Math.random() * 100,
+          5000 // Max 5 seconds
+        );
+        
+        logger.info(`Redis reconnecting attempt ${retries}, next try in ${delay}ms`);
+        return delay;
       }
-      const delay = Math.min(times * redisConfig.REDIS_RETRY_DELAY, 3000);
-      logger.info(`Redis retry attempt ${times} in ${delay}ms`);
-      return delay;
+    },
+    enableOfflineQueue: true, // Changed to true to buffer commands during disconnects
+    maxRetriesPerRequest: null // Keep retrying forever
+  };
+
+  // Use URL if provided, otherwise use host/port
+  const redisClient = redisConfig.REDIS_URL 
+    ? new Redis(redisConfig.REDIS_URL, redisOptions)
+    : new Redis({
+        host: redisConfig.REDIS_HOST,
+        port: redisConfig.REDIS_PORT,
+        password: redisConfig.REDIS_PASSWORD,
+        ...redisOptions
+      });
+
+  // Connection event handlers
+  redisClient.on('connect', () => {
+    logger.info('Redis connected');
+  });
+
+  redisClient.on('ready', () => {
+    logger.info('Redis ready');
+  });
+
+  redisClient.on('reconnecting', () => {
+    logger.warn('Redis reconnecting...');
+  });
+
+  redisClient.on('error', (error) => {
+    logger.error('Redis error', { error: error.message });
+  });
+
+  redisClient.on('end', () => {
+    logger.warn('Redis connection closed');
+  });
     },
     maxRetriesPerRequest: 1, // Reduce retries to fail faster
     connectTimeout: redisConfig.REDIS_CONNECT_TIMEOUT,

@@ -17,7 +17,20 @@ const logger = {
 async function testMongoConnection() {
   try {
     logger.info('Testing MongoDB connection...');
-    await mongoose.connect(process.env.MONGODB_URI);
+    await mongoose.connect(process.env.MONGODB_URI, {
+      autoReconnect: true,
+      reconnectTries: 3,
+      reconnectInterval: 1000,
+      connectTimeoutMS: 5000
+    });
+    
+    // Wait for connection events
+    await new Promise((resolve, reject) => {
+      mongoose.connection.once('connected', resolve);
+      mongoose.connection.once('error', reject);
+      setTimeout(() => reject(new Error('MongoDB connection timeout')), 5000);
+    });
+    
     logger.success('MongoDB connection successful!');
     return true;
   } catch (error) {
