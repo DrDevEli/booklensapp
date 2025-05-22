@@ -74,6 +74,47 @@ export async function isJwtBlacklisted(jti) {
 }
 
 /**
+ * Add a JWT to the whitelist
+ */
+export async function whitelistJwt(jti, userId, expiresIn = 3600) {
+  try {
+    await redis.set(`jwt:whitelist:${userId}:${jti}`, '1', 'EX', expiresIn);
+    logger.info('JWT whitelisted', { jti, userId });
+    return true;
+  } catch (error) {
+    logger.error('Error whitelisting JWT', { jti, userId, error: error.message });
+    return false;
+  }
+}
+
+/**
+ * Check if JWT is whitelisted
+ */
+export async function isJwtWhitelisted(jti, userId) {
+  try {
+    const result = await redis.get(`jwt:whitelist:${userId}:${jti}`);
+    return Boolean(result);
+  } catch (error) {
+    logger.error('Error checking JWT whitelist', { jti, userId, error: error.message });
+    return false; // Fail closed - if we can't check, assume token is invalid
+  }
+}
+
+/**
+ * Remove JWT from whitelist
+ */
+export async function removeFromWhitelist(jti, userId) {
+  try {
+    await redis.del(`jwt:whitelist:${userId}:${jti}`);
+    logger.info('JWT removed from whitelist', { jti, userId });
+    return true;
+  } catch (error) {
+    logger.error('Error removing JWT from whitelist', { jti, userId, error: error.message });
+    return false;
+  }
+}
+
+/**
  * Add a JWT to the blacklist
  */
 export async function blacklistJwt(jti, expiresIn = 3600) {

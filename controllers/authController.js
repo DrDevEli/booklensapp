@@ -158,7 +158,10 @@ class AuthController {
       }
       
       // Generate tokens
-      const { accessToken, refreshToken } = generateTokens(user._id, user.role);
+      const { accessToken, refreshToken, jti } = generateTokens(user._id, user.role);
+      
+      // Add to whitelist
+      await whitelistJwt(jti, user._id, parseInt(process.env.JWT_EXPIRES_IN) || 3600);
       
       // Log successful 2FA login
       const AuditLog = mongoose.model('AuditLog');

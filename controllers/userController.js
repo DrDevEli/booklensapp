@@ -181,14 +181,9 @@ class UserController {
     try {
       const { jti } = req.user;
       
-      // Add token to blacklist
-      const redis = require('../utils/redis.js').default;
-      await redis.set(
-        `jwt:blacklist:${jti}`, 
-        '1', 
-        'EX', 
-        parseInt(process.env.JWT_EXPIRES_IN) || 3600
-      );
+      // Remove from whitelist and add to blacklist
+      await removeFromWhitelist(jti, req.user.id);
+      await blacklistJwt(jti, parseInt(process.env.JWT_EXPIRES_IN) || 3600);
       
       // Log logout event
       const AuditLog = mongoose.model('AuditLog');

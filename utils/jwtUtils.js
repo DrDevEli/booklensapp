@@ -62,17 +62,27 @@ export const generateTokens = (userId, role, tokenVersion = Date.now()) => {
  * @param {boolean} isRefresh - Whether this is a refresh token
  * @returns {Object} The decoded token payload
  */
-export const verifyToken = (token, isRefresh = false) => {
+export const verifyToken = async (token, isRefresh = false) => {
     try {
         const secret = isRefresh 
             ? (process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET)
             : process.env.JWT_SECRET;
             
-        return jwt.verify(token, secret, {
+        const decoded = jwt.verify(token, secret, {
             algorithms: ['HS256'],
             ...(process.env.JWT_ISSUER ? { issuer: process.env.JWT_ISSUER } : {}),
             ...(process.env.JWT_AUDIENCE ? { audience: process.env.JWT_AUDIENCE } : {})
         });
+
+        // For access tokens, check whitelist
+        if (!isRefresh && decoded.jti) {
+            const isWhitelisted = await isJwtWhitelisted(decoded.jti, decoded.sub);
+            if (!isWhitelisted) {
+                throw new Error('Token not whitelisted');
+            }
+        }
+
+        return decoded;
     } catch (error) {
         logger.warn('Token verification failed', { error: error.message });
         throw error;
