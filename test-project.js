@@ -18,10 +18,9 @@ async function testMongoConnection() {
   try {
     logger.info('Testing MongoDB connection...');
     await mongoose.connect(process.env.MONGODB_URI, {
-      autoReconnect: true,
-      reconnectTries: 3,
-      reconnectInterval: 1000,
-      connectTimeoutMS: 5000
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 30000,
+      connectTimeoutMS: 30000
     });
     
     // Wait for connection events
@@ -54,7 +53,8 @@ async function testRedisConnection() {
       host: process.env.REDIS_HOST,
       port: process.env.REDIS_PORT,
       password: process.env.REDIS_PASSWORD,
-      enableOfflineQueue: false
+      enableOfflineQueue: true,
+      maxRetriesPerRequest: null
     });
 
     // Test a simple operation

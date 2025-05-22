@@ -4,12 +4,11 @@ import logger from '../utils/logger.js';
 const connectDB = async () => {
   try {
     await mongoose.connect(process.env.MONGODB_URI, {
-      autoReconnect: true,
-      reconnectTries: Number.MAX_VALUE,
-      reconnectInterval: 1000,
-      connectTimeoutMS: 30000,
+      serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 30000,
-      serverSelectionTimeoutMS: 5000
+      connectTimeoutMS: 30000,
+      retryWrites: true,
+      retryReads: true
     });
 
     logger.info('MongoDB connected successfully');
