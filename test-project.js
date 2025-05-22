@@ -1,7 +1,9 @@
-const axios = require('axios');
-const Redis = require('ioredis');
-const mongoose = require('mongoose');
-require('dotenv').config();
+import axios from 'axios';
+import Redis from 'ioredis';
+import mongoose from 'mongoose';
+
+import dotenv from 'dotenv';
+dotenv.config();
 
 // Logger setup
 const logger = {
