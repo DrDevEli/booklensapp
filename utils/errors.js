@@ -1,4 +1,4 @@
-import logger from './logger.js';
+import logger from '../infrastructure/config/logger.js';
 
 export class ApiError extends Error {
   constructor(status, message) {
