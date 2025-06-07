@@ -1,7 +1,7 @@
 import { RateLimiterRedis } from 'rate-limiter-flexible';
-import redis from '../config/redis.js';
-import { ApiError } from '../utils/errors.js';
-import logger from '../utils/logger.js';
+import redis from '../../../config/redis.js';
+import { ApiError } from '../../../utils/errors.js';
+import logger from '../../../utils/logger.js';
 
 // Define rate limiters for different endpoints
 const loginRateLimiter = new RateLimiterRedis({
@@ -30,7 +30,7 @@ const authenticatedRateLimiter = new RateLimiterRedis({
 // Admin users get even higher limits
 const adminRateLimiter = new RateLimiterRedis({
   storeClient: redis,
-  keyPrefix: 'ratelimit:admin',
+  keyPrefix: 'ratelimit:chefaodacasa',
   points: 1000, // 1000 requests
   duration: 60, // per 1 minute
 });

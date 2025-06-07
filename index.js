@@ -44,7 +44,7 @@ import collectionRoutes from './routes/collectionRoutes.js';
 
 // MongoDB
 import mongoose from 'mongoose';
-import logger, { requestLogger } from './utils/logger.js';
+import logger, { requestLogger } from './server/src/utils/logger.js';
 import User from './models/User.js';
 import Book from './models/Book.js';
 import BookCollection from './models/BookCollection.js';

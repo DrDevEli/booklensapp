@@ -81,7 +81,7 @@ app.get('/health', async (req, res) => {
 });
 
 // Cache monitoring endpoint
-app.get('/api/admin/cache/stats', async (req, res) => {
+app.get('/api/chefaodacasa/cache/stats', async (req, res) => {
   try {
     const { cache } = await import('./utils/cache.js');
     const stats = cache.stats.get();
@@ -109,7 +109,7 @@ app.get('/api/admin/cache/stats', async (req, res) => {
 });
 
 // Cache reset endpoint
-app.post('/api/admin/cache/reset', async (req, res) => {
+app.post('/api/chefaodacasa/cache/reset', async (req, res) => {
   try {
     const { cache } = await import('./utils/cache.js');
     const stats = cache.stats.reset();

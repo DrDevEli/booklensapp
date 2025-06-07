@@ -101,7 +101,7 @@ export const generateCsrfToken = (req, res, next) => {
 };
 
 // Helper middleware for common role checks                                                                                                                       
-export const adminOnly = authMiddleware(['chefãodacasa']);
+export const adminOnly = authMiddleware(['chefaodacasa']);
 export const userOnly = authMiddleware(['user']);
 
 // Email verification check middleware

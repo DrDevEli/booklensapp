@@ -9,6 +9,7 @@ dist/
 .env.local
 .env.*.local
 *.aider
+aider/
 # Logs
 logs
 *.log
@@ -47,3 +48,4 @@ out/
 # OpenAI credentials and generated secrets
 openai.key
 openai.log
+

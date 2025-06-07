@@ -49,7 +49,7 @@ passport.use(new LocalStrategy(
 passport.use(new JwtStrategy(
   {
     jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-    secretOrKey: process.env.JWT_SECRET || '088bbe8bc73f0ba919bed37a7b007744bd680bafc4f9a4d449fa4783e65e67e69ee30dd8e6c216571e4bba462d96f4362b634992f86175fc2b6312b1ff586d89',
+    secretOrKey: process.env.JWT_SECRET || 'default',
     issuer: process.env.JWT_ISSUER,
     audience: process.env.JWT_AUDIENCE,
     passReqToCallback: true

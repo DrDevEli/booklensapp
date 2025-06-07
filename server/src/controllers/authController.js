@@ -7,8 +7,8 @@ import { ApiError } from '../utils/errors.js';
 import { generateTokens } from '../utils/jwtUtils.js';
 import { isJwtBlacklisted } from '../utils/authRedisUtils.js';
 import logger from '../utils/logger.js';
-import * as emailVerificationController from './emailVerificationController.js';
-import * as passwordResetController from './passwordResetController.js';
+import * as emailVerificationController from '../emailVerificationController.js';
+import * as passwordResetController from '../passwordResetController.js';
 
 class AuthController {
   static async requestPasswordReset(req, res, next) {
