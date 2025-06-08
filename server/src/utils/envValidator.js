@@ -8,13 +8,7 @@ import validator from 'validator';
  * 
  * These functions provide runtime validation for environment variables
  * when you need more complex checks than what envalid provides.
- * 
- * For basic environment variable access, use the `env` object from config/env.js
- * 
- * Examples:
- * - Validate email format in a variable
- * - Check if a port number is valid
- * - Complex validation logic that depends on multiple variables
+ * They can be used to ensure environment variables
  */
 
 /**
