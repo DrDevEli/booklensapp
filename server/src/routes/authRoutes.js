@@ -6,7 +6,6 @@ import AuthController from '../controllers/authController.js';
 import UserController from '../controllers/userController.js';
 import { resetPassword } from '../controllers/passwordResetController.js';
 import { validateResetToken } from '../controllers/passwordResetController.js';
-import { resendVerificationEmail } from '../controllers/emailVerificationController.js';
 
 // Middleware
 import { authMiddleware } from '../middleware/authMiddleware.js';
