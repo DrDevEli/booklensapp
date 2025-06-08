@@ -432,3 +432,60 @@
 
 # 2025-06-08 08:29:23.071561
 +D
+
+# 2025-06-08 13:26:30.881049
++n
+
+# 2025-06-08 13:29:02.268468
++npm run lint 
++
++> booklensapp@1.0.0 lint
++> eslint .
++
++
++/Users/emdesenvolvimento/Desktop/booklensapp/legacy/test-project.js
++  1:8  warning  'axios' is defined but never used  no-unused-vars
++
++/Users/emdesenvolvimento/Desktop/booklensapp/server/src/controllers/authController.js
++  68:13  warning  'recoveryCodes' is assigned a value but never used  no-unused-vars
++
++/Users/emdesenvolvimento/Desktop/booklensapp/server/src/controllers/userController.js
++  185:13  error  'removeFromWhitelist' is not defined  no-undef
++  186:13  error  'blacklistJwt' is not defined         no-undef
++
++/Users/emdesenvolvimento/Desktop/booklensapp/server/src/middleware/errorHandler.js
++  4:38  warning  'next' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
++
++/Users/emdesenvolvimento/Desktop/booklensapp/server/src/routes/authRoutes.js
++   85:27  error  'passwordResetController' is not defined      no-undef
++  110:11  error  'emailVerificationController' is not defined  no-undef
++
++/Users/emdesenvolvimento/Desktop/booklensapp/server/src/utils/cache.js
++   50:16  warning  'e' is defined but never used  no-unused-vars
++  139:20  warning  'e' is defined but never used  no-unused-vars
++
++/Users/emdesenvolvimento/Desktop/booklensapp/server/src/utils/envValidator.js
++  123:11  warning  'redisPort' is assigned a value but never used  no-unused-vars
++  171:18  warning  'error' is defined but never used               no-unused-vars
++
++/Users/emdesenvolvimento/Desktop/booklensapp/server/src/utils/errors.js
++  11:45  warning  'next' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
++
++/Users/emdesenvolvimento/Desktop/booklensapp/tests/auth.test.js
++   1:8   warning  'request' is defined but never used            no-unused-vars
++   2:8   warning  'mongoose' is defined but never used           no-unused-vars
++   4:10  warning  'generateTokens' is defined but never used     no-unused-vars
++  29:7   warning  'app' is assigned a value but never used       no-unused-vars
++  37:7   warning  'testUser' is assigned a value but never used  no-unused-vars
++
++✖ 17 problems (4 errors, 13 warnings)
++- Let's address the errors first, if you could tell me how ask you to help me address this lint output
+
+# 2025-06-08 13:43:52.404674
++S
+
+# 2025-06-08 13:44:00.774245
++N
+
+# 2025-06-08 13:44:04.073730
++we could start with the highest priority error files

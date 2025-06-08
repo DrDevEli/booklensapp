@@ -2,7 +2,7 @@
   "engines": {
     "node": ">=20.0.0"
   },
-  "name": "booksserviceapi",
+  "name": "booklensapp",
   "version": "1.0.0",
   "description": "books search api",
   "main": "index.js",

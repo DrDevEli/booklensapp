@@ -20,7 +20,7 @@ const userSchema = new mongoose.Schema({
     validate: {
       validator: function (v) {
         // Check for at least one uppercase, one lowercase, one number, one special char, and min length 12
-        return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{12,}$/.test(v);
+        return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]).{12,}$/.test(v);
       },
       message: 'Password must be at least 12 characters and contain uppercase, lowercase, numbers and special characters'
     }
