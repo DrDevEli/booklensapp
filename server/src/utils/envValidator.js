@@ -1,10 +1,24 @@
-import { ApiError, ValidationError } from './errors.js';
-import logger from './src/config/logger.js';
+import { ValidationError } from './errors.js';
+import logger from '../config/logger.js';
 import { isIP } from 'net';
 import validator from 'validator';
 
 /**
- * Validates required environment variables
+ * ADVANCED VALIDATION UTILITIES
+ * 
+ * These functions provide runtime validation for environment variables
+ * when you need more complex checks than what envalid provides.
+ * 
+ * For basic environment variable access, use the `env` object from config/env.js
+ * 
+ * Examples:
+ * - Validate email format in a variable
+ * - Check if a port number is valid
+ * - Complex validation logic that depends on multiple variables
+ */
+
+/**
+ * Validates required environment variables (runtime check)
  * @param {Array<string>} requiredVars - List of required environment variables
  * @throws {Error} If any required variable is missing
  */
