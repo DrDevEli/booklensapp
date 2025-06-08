@@ -8,9 +8,7 @@ import {
   resetPassword,
   validateResetToken 
 } from '../controllers/passwordResetController.js';
-import { 
-  sendVerificationEmail 
-} from '../controllers/emailVerificationController.js';
+import * as emailVerificationController from '../controllers/emailVerificationController.js';
 
 // Middleware
 import { 
@@ -109,8 +107,8 @@ router.get('/validate-reset-token/:token', async (req, res, next) => {
 });
 
 // Email verification
-router.get('/verify-email/:token', sendVerificationEmail);
-router.post('/resend-verification', authMiddleware(), resendVerificationEmail);
+router.get('/verify-email/:token', emailVerificationController.sendVerificationEmail);
+router.post('/resend-verification', authMiddleware(), emailVerificationController.resendVerificationEmailHandler);
 router.post('/resend-verification-public', async (req, res, next) => {
   try {
     const { email } = req.body;
@@ -122,7 +120,7 @@ router.post('/resend-verification-public', async (req, res, next) => {
       });
     }
 
-    await resendVerificationEmail(email);
+    await emailVerificationController.resendVerificationEmail(email);
 
     res.status(200).json({
       success: true,
