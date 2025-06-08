@@ -2,8 +2,15 @@
 import express from 'express';
 import AuthController from '../controllers/authController.js';
 import UserController from '../controllers/userController.js';
-import * as passwordResetController from '../controllers/passwordResetController.js';
-import * as emailVerificationController from '../controllers/emailVerificationController.js';
+import {
+  validateResetToken,
+  resetPassword,
+} from '../controllers/passwordResetController.js';
+import {
+  sendVerificationEmail,
+  verifyEmail,
+  resendVerificationEmail
+} from '../controllers/emailVerificationController.js';
 import { authMiddleware, generateCsrfToken } from '../middleware/authMiddleware.js';
 import passport from 'passport';
 import { generateTokens } from '../utils/jwtUtils.js';
@@ -31,10 +38,10 @@ router.post('/login', passport.authenticate('local', { session: false }), (req, 
       }
     });
   }
-  
+
   // Generate tokens
   const { accessToken, refreshToken } = generateTokens(req.user._id, req.user.role);
-  
+
   res.status(200).json({
     success: true,
     message: 'Login successful',
@@ -54,19 +61,19 @@ router.post('/login', passport.authenticate('local', { session: false }), (req, 
 });
 
 // OAuth routes
-router.get('/google', passport.authenticate('google', { 
-  scope: ['profile', 'email'] 
+router.get('/google', passport.authenticate('google', {
+  scope: ['profile', 'email']
 }));
 
-router.get('/google/callback', 
-  passport.authenticate('google', { 
+router.get('/google/callback',
+  passport.authenticate('google', {
     failureRedirect: '/login',
-    session: false 
+    session: false
   }),
   (req, res) => {
     // Generate JWT tokens
     const { accessToken, refreshToken } = generateTokens(req.user._id, req.user.role);
-    
+
     // Redirect to frontend with tokens
     res.redirect(`${process.env.FRONTEND_URL}/oauth-callback?token=${accessToken}&refresh=${refreshToken}`);
   }
@@ -80,12 +87,12 @@ router.post('/2fa/disable', authMiddleware(), AuthController.disableTwoFactor);
 
 // Password reset routes
 router.post('/forgot-password', AuthController.requestPasswordReset);
-router.post('/reset-password', AuthController.resetPassword);
+router.post('/reset-password', resetPassword);
 router.get('/validate-reset-token/:token', async (req, res, next) => {
   try {
     const { token } = req.params;
-    const isValid = await passwordResetController.validateResetToken(token);
-    
+    const isValid = await validateResetToken(token);
+
     res.status(200).json({
       success: true,
       isValid
@@ -96,21 +103,21 @@ router.get('/validate-reset-token/:token', async (req, res, next) => {
 });
 
 // Email verification
-router.get('/verify-email/:token', AuthController.verifyEmail);
+router.get('/verify-email/:token', sendVerificationEmail);
 router.post('/resend-verification', authMiddleware(), AuthController.resendVerificationEmail);
 router.post('/resend-verification-public', async (req, res, next) => {
   try {
     const { email } = req.body;
-    
+
     if (!email) {
       return res.status(400).json({
         success: false,
         message: 'Email is required'
       });
     }
-    
+
     await emailVerificationController.resendVerificationEmail(email);
-    
+
     res.status(200).json({
       success: true,
       message: 'If your email is registered and not verified, a verification email has been sent'
