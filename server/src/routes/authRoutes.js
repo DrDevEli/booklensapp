@@ -6,6 +6,8 @@ import AuthController from '../controllers/authController.js';
 import UserController from '../controllers/userController.js';
 import { resetPassword } from '../controllers/passwordResetController.js';
 import { validateResetToken } from '../controllers/passwordResetController.js';
+import { resendVerificationEmail, sendVerificationEmail } from                                             
+'../controllers/emailVerificationController.js';
 
 // Middleware
 import { authMiddleware } from '../middleware/authMiddleware.js';
@@ -103,7 +105,7 @@ router.get('/validate-reset-token/:token', async (req, res, next) => {
 
 // Email verification
 router.get('/verify-email/:token', sendVerificationEmail);
-router.post('/resend-verification', authMiddleware(), AuthController.resendVerificationEmail);
+router.post('/resend-verification', authMiddleware(), resendVerificationEmail);
 router.post('/resend-verification-public', async (req, res, next) => {
   try {
     const { email } = req.body;
@@ -115,7 +117,7 @@ router.post('/resend-verification-public', async (req, res, next) => {
       });
     }
 
-    await emailVerificationController.resendVerificationEmail(email);
+    await resendVerificationEmail(email);
 
     res.status(200).json({
       success: true,
