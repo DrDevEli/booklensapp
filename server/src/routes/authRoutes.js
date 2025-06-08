@@ -4,14 +4,19 @@ import passport from 'passport';
 // Controllers
 import AuthController from '../controllers/authController.js';
 import UserController from '../controllers/userController.js';
-import { resetPassword } from '../controllers/passwordResetController.js';
-import { validateResetToken } from '../controllers/passwordResetController.js';
-import { resendVerificationEmail, sendVerificationEmail } from                                             
-'../controllers/emailVerificationController.js';
+import { 
+  resetPassword,
+  validateResetToken 
+} from '../controllers/passwordResetController.js';
+import { 
+  sendVerificationEmail 
+} from '../controllers/emailVerificationController.js';
 
 // Middleware
-import { authMiddleware } from '../middleware/authMiddleware.js';
-import { generateCsrfToken } from '../middleware/authMiddleware.js';
+import { 
+  authMiddleware,
+  generateCsrfToken 
+} from '../middleware/authMiddleware.js';
 
 // Utils
 import { generateTokens } from '../utils/jwtUtils.js';
