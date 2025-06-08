@@ -1,5 +1,18 @@
 import express from 'express';
 import passport from 'passport';
+import rateLimit from 'express-rate-limit';
+
+const publicResendLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 3, // Limit each IP to 3 requests per windowMs
+  message: {
+    success: false,
+    message: 'Too many resend attempts. Please try again later.'
+  },
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  skipFailedRequests: true // Don't count failed requests (4xx/5xx)
+});
 
 // Controllers
 import AuthController from '../controllers/authController.js';
@@ -109,7 +122,7 @@ router.get('/validate-reset-token/:token', async (req, res, next) => {
 // Email verification
 router.get('/verify-email/:token', emailVerificationController.sendVerificationEmail);
 router.post('/resend-verification', authMiddleware(), emailVerificationController.resendVerificationEmailHandler);
-router.post('/resend-verification-public', async (req, res, next) => {
+router.post('/resend-verification-public', publicResendLimiter, async (req, res, next) => {
   try {
     const { email } = req.body;
 
