@@ -1,18 +1,18 @@
-// Description: This file contains the routes for authentication, including OAuth and two-factor authentication.
 import express from 'express';
+import passport from 'passport';
+
+// Controllers
 import AuthController from '../controllers/authController.js';
 import UserController from '../controllers/userController.js';
-import {
-  validateResetToken,
-  resetPassword,
-} from '../controllers/passwordResetController.js';
-import {
-  sendVerificationEmail,
-  verifyEmail,
-  resendVerificationEmail
-} from '../controllers/emailVerificationController.js';
-import { authMiddleware, generateCsrfToken } from '../middleware/authMiddleware.js';
-import passport from 'passport';
+import { resetPassword } from '../controllers/passwordResetController.js';
+import { validateResetToken } from '../controllers/passwordResetController.js';
+import { resendVerificationEmail } from '../controllers/emailVerificationController.js';
+
+// Middleware
+import { authMiddleware } from '../middleware/authMiddleware.js';
+import { generateCsrfToken } from '../middleware/authMiddleware.js';
+
+// Utils
 import { generateTokens } from '../utils/jwtUtils.js';
 
 const router = express.Router();
