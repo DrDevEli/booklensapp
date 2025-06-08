@@ -44,10 +44,10 @@ import collectionRoutes from './server/src/routes/collectionRoutes.js';
 
 // MongoDB
 import mongoose from 'mongoose';
-import logger, { requestLogger } from './server/src/config/logger.js';
-import User from './server/src/models/User.js';
-import Book from './server/src/models/Book.js';
-import BookCollection from './server/src/models/BookCollection.js';
+ import { requestLogger } from './server/src/config/logger.js';
+// import User from './server/src/models/User.js';
+// import Book from './server/src/models/Book.js';
+// import BookCollection from './server/src/models/BookCollection.js'; ///// maybe remove these imports if not used
 
 
 const app = express();
