@@ -2,6 +2,8 @@
 import express from 'express';
 import AuthController from '../controllers/authController.js';
 import UserController from '../controllers/userController.js';
+import * as passwordResetController from '../controllers/passwordResetController.js';
+import * as emailVerificationController from '../controllers/emailVerificationController.js';
 import { authMiddleware, generateCsrfToken } from '../middleware/authMiddleware.js';
 import passport from 'passport';
 import { generateTokens } from '../utils/jwtUtils.js';
