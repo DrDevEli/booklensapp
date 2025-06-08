@@ -1,22 +1,4 @@
-// Must be first to load and validate environment variables
-import dotenv from 'dotenv';
-import { cleanEnv, str, num, url } from 'envalid';
-
-dotenv.config();
-
-const env = cleanEnv(process.env, {
-  MONGODB_URI: str(),
-  PORT: num({ default: 3323 }),
-  JWT_SECRET: str({desc: '32+ character secret for JWT signing'}),
-  JWT_EXPIRES_IN: str({ default: '1h' }),
-  JWT_REFRESH_SECRET: str({ default: process.env.JWT_SECRET }),
-  JWT_REFRESH_EXPIRES_IN: str({ default: '7d' }),
-  SESSION_SECRET: str(),
-  NODE_ENV: str({ choices: ['development', 'production', 'test'] }),
-  REDIS_HOST: str({ default: 'localhost' }),
-  REDIS_PORT: num({ default: 6379 }),
-  FRONTEND_URL: url({ default: 'http://localhost:3000' })
-});
+import env from './config/env.js';
 
 // Core modules
 import fs from 'fs';
@@ -51,8 +33,8 @@ import mongoose from 'mongoose';
 
 
 const app = express();
-const PORT = process.env.PORT || 3323;
-const NODE_ENV = process.env.NODE_ENV || 'development';
+const PORT = env.PORT;
+const NODE_ENV = env.NODE_ENV;
 
 // Get the directory name in ES module scope
 const __filename = fileURLToPath(import.meta.url);
@@ -68,7 +50,7 @@ const mongoOptions = {
   w: 'majority'
 };
 
-mongoose.connect(process.env.MONGODB_URI, mongoOptions)
+mongoose.connect(env.MONGODB_URI, mongoOptions)
   .then(() => {
     console.log('✅ MongoDB connected');
     // Verify indexes on startup
@@ -96,7 +78,7 @@ app.use(express.static(path.join(process.cwd(), 'public')));
 
 // Session configuration
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'devsecret',
+  secret: env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   cookie: { secure: NODE_ENV === 'production' },
