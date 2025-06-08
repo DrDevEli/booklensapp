@@ -8,10 +8,10 @@ dist/
 .env
 .env.local
 .env.*.local
-*.aider
 aider/
+*.aider
 # Logs
-logs
+logs/
 *.log
 log/
 debug.log
@@ -30,6 +30,9 @@ Thumbs.db
 coverage/
 build/
 tmp/
+tmp/ssl/*.crt
+tmp/ssl/*.key
+
 temp/
 
 # Dependency directories
