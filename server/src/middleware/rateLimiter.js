@@ -1,7 +1,7 @@
 import { RateLimiterRedis } from 'rate-limiter-flexible';
-import redis from '../../../config/redis.js';
-import { ApiError } from '../../../utils/errors.js';
-import logger from '../../../utils/logger.js';
+import redis from '../config/redis.js';
+import { ApiError } from '../utils/errors.js';
+import logger from '../config/logger.js';
 
 // Define rate limiters for different endpoints
 const loginRateLimiter = new RateLimiterRedis({

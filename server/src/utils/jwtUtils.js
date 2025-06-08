@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
-import logger from './logger.js';
+import logger from '../config/logger.js';
 import { isJwtWhitelisted } from './authRedisUtils.js';
 
 /**

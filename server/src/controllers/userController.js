@@ -2,7 +2,7 @@ import User from '../models/User.js';
 import mongoose from 'mongoose';
 import { ApiError } from '../utils/errors.js';
 import { generateTokens } from '../utils/jwtUtils.js';
-import logger from '../utils/logger.js';
+import logger from '../config/logger.js';
 import crypto from 'crypto';
 import { incrementLoginAttempts, clearLoginAttempts } from '../utils/authRedisUtils.js';
 

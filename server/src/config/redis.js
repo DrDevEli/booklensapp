@@ -1,8 +1,9 @@
+// config/redis.js
 import Redis from 'ioredis';
-import logger from '../utils/logger.js';
+import logger from '../config/logger.js';
 import { getEnvConfig } from '../utils/envValidator.js';
 
-// Get Redis configuration from environment
+// Get Redis configuration from environment variables
 const redisConfig = getEnvConfig({
   REDIS_HOST: { default: 'localhost' },
   REDIS_PORT: { type: 'number', default: 6379 },
@@ -16,6 +17,34 @@ const redisConfig = getEnvConfig({
   NODE_ENV: { default: 'development' }
 });
 
+// Define Redis connection options
+const redisOptions = {
+  socket: {
+    reconnectStrategy: (retries) => {
+      const maxRetries = redisConfig.REDIS_MAX_RETRIES || 20;
+      const baseDelay = redisConfig.REDIS_RETRY_DELAY || 100;
+
+      if (retries > maxRetries) {
+        logger.error('Redis connection failed after maximum retries');
+        return new Error('Max retries reached');
+      }
+
+      // Exponential backoff with jitter
+      const delay = Math.min(
+        baseDelay * Math.pow(2, retries) + Math.random() * 100,
+        5000 // Max 5 seconds
+      );
+
+      logger.info(`Redis reconnecting attempt ${retries}, next try in ${delay}ms`);
+      return delay;
+    }
+  },
+  enableOfflineQueue: true, // Buffer commands during disconnects
+  maxRetriesPerRequest: null, // Retry forever
+  connectTimeout: redisConfig.REDIS_CONNECT_TIMEOUT, // Connection timeout
+  tls: redisConfig.REDIS_TLS_ENABLED ? {} : undefined // Enable TLS if configured
+};
+
 // Create a mock Redis client for development if Redis is not available
 class MockRedis {
   constructor() {
@@ -23,7 +52,7 @@ class MockRedis {
     this.connected = true;
     logger.info('Using mock Redis client - data will not persist between restarts');
   }
-  
+
   // Add ping method for connection testing
   async ping() {
     return 'PONG';
@@ -34,10 +63,8 @@ class MockRedis {
   }
 
   async set(key, value, ...args) {
-    // Handle EX argument for expiry
     if (args.length > 0 && args[0] === 'EX') {
       this.store.set(key, value);
-      // Simulate expiry
       setTimeout(() => {
         this.store.delete(key);
       }, args[1] * 1000);
@@ -83,7 +110,7 @@ class MockRedis {
     }
     return added;
   }
-  
+
   pipeline() {
     return {
       set: (...args) => {
@@ -113,33 +140,7 @@ class MockRedis {
 let redis;
 
 try {
-  const redisOptions = {
-    socket: {
-      reconnectStrategy: (retries) => {
-        const maxRetries = redisConfig.REDIS_MAX_RETRIES || 10;
-        const baseDelay = redisConfig.REDIS_RETRY_DELAY || 100;
-        
-        if (retries > maxRetries) {
-          logger.error('Redis connection failed after maximum retries');
-          return new Error('Max retries reached');
-        }
-        
-        // Exponential backoff with jitter
-        const delay = Math.min(
-          baseDelay * Math.pow(2, retries) + Math.random() * 100,
-          5000 // Max 5 seconds
-        );
-        
-        logger.info(`Redis reconnecting attempt ${retries}, next try in ${delay}ms`);
-        return delay;
-      }
-    },
-    enableOfflineQueue: true, // Changed to true to buffer commands during disconnects
-    maxRetriesPerRequest: null // Keep retrying forever
-  };
-
-  // Use URL if provided, otherwise use host/port
-  const redisClient = redisConfig.REDIS_URL 
+  const redisClient = redisConfig.REDIS_URL
     ? new Redis(redisConfig.REDIS_URL, redisOptions)
     : new Redis({
         host: redisConfig.REDIS_HOST,
@@ -169,52 +170,10 @@ try {
     logger.warn('Redis connection closed');
   });
 
-  return redisClient;
+  redis = redisClient;
 } catch (error) {
-
-  // Try to connect using URL first, then fallback to options if that fails
-  try {
-    redis = new Redis(redisUrl, redisOptions);
-  } catch (error) {
-    logger.warn(`Redis URL connection failed: ${error.message}, trying with options`);
-    redis = new Redis({
-      host: redisConfig.REDIS_HOST,
-      port: redisConfig.REDIS_PORT,
-      username: 'dante miguel',
-      password: redisConfig.REDIS_PASSWORD,
-      db: redisConfig.REDIS_DB,
-      ...redisOptions
-    });
-  }
-
-  redis.on('connect', () => {
-    logger.info('Redis connected successfully');
-  });
-
-  redis.on('error', (err) => {
-    if (err.code === 'ECONNREFUSED' || err.message.includes('SSL') || err.message.includes('WRONGPASS')) {
-      logger.warn(`Redis connection error: ${err.message}, falling back to mock implementation`);
-      redis = new MockRedis();
-    } else {
-      logger.error('Redis error', { error: err.message });
-    }
-  });
-
-  // Test connection with timeout
-  try {
-    const pingPromise = redis.ping();
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Redis ping timeout')), 2000)
-    );
-    
-    await Promise.race([pingPromise, timeoutPromise]);
-    logger.info('Redis ping successful');
-  } catch (error) {
-    logger.warn(`Redis ping failed: ${error.message}, falling back to mock implementation`);
-    redis = new MockRedis();
-  }
-  logger.warn('Failed to initialize Redis, using mock implementation', { error: error.message });
-  return new MockRedis();
+  logger.warn('Redis connection failed, falling back to mock implementation', { error: error.message });
+  redis = new MockRedis();
 }
 
 export default redis;

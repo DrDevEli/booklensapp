@@ -1,7 +1,7 @@
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { getEnvConfig } from '../utils/envValidator.js';
-import logger from '../utils/logger.js';
+import logger from '../config/logger.js';
 
 /**
  * Configure and apply security middleware to Express app

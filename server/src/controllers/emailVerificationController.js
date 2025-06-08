@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import User from '../models/User.js';
 import emailService from '../services/emailService.js';
 import { ApiError } from '../utils/errors.js';
-import logger from '../utils/logger.js';
+import logger from '../config/logger.js';
 
 /**
  * Generate a verification token and send verification email

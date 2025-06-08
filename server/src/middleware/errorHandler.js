@@ -1,5 +1,5 @@
 import { ApiError } from '../utils/errors.js';
-import logger from '../utils/logger.js';
+import logger from '../config/logger.js';
 
 const errorHandler = (err, req, res, next) => {
   // Log the error

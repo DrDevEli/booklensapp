@@ -6,9 +6,9 @@ import User from '../models/User.js';
 import { ApiError } from '../utils/errors.js';
 import { generateTokens } from '../utils/jwtUtils.js';
 import { isJwtBlacklisted, whitelistJwt } from '../utils/authRedisUtils.js';
-import logger from '../utils/logger.js';
-import * as emailVerificationController from '../emailVerificationController.js';
-import * as passwordResetController from '../passwordResetController.js';
+import logger from '../config/logger.js';
+import * as emailVerificationController from './emailVerificationController.js';
+import * as passwordResetController from './passwordResetController.js';
 
 class AuthController {
   static async requestPasswordReset(req, res, next) {

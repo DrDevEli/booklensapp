@@ -33,21 +33,21 @@ import flash from 'connect-flash';
 import helmet from 'helmet';
 
 // Auth and Models
-import passport from './config/passport.js';
-import rateLimiterMiddleware from './middleware/rateLimiter.js';
+import passport from './server/src/config/passport.js';
+import rateLimiterMiddleware from './server/src/middleware/rateLimiter.js';
 
 // Routes
-import bookRoutes from './routes/bookRoutes.js';
-import userRoutes from './routes/userRoutes.js';
-import authRoutes from './routes/authRoutes.js';
-import collectionRoutes from './routes/collectionRoutes.js';
+import bookRoutes from './server/src/routes/bookRoutes.js';
+import userRoutes from './server/src/routes/userRoutes.js';
+import authRoutes from './server/src/routes/authRoutes.js';
+import collectionRoutes from './server/src/routes/collectionRoutes.js';
 
 // MongoDB
 import mongoose from 'mongoose';
-import logger, { requestLogger } from './server/src/utils/logger.js';
-import User from './models/User.js';
-import Book from './models/Book.js';
-import BookCollection from './models/BookCollection.js';
+import logger, { requestLogger } from './server/src/config/logger.js';
+import User from './server/src/models/User.js';
+import Book from './server/src/models/Book.js';
+import BookCollection from './server/src/models/BookCollection.js';
 
 
 const app = express();
@@ -151,7 +151,7 @@ app.use('/api/collections', collectionRoutes);
 app.use('/api/auth', authRoutes);
 
 // Error handler placeholder
-import errorHandler from './middleware/errorHandler.js';
+import errorHandler from './server/src/middleware/errorHandler.js';
 app.use(errorHandler);
 
 if (NODE_ENV === 'production') {

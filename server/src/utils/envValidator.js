@@ -1,5 +1,5 @@
 import { ApiError, ValidationError } from './errors.js';
-import logger from './logger.js';
+import logger from './src/config/logger.js';
 import { isIP } from 'net';
 import validator from 'validator';
 
@@ -56,7 +56,7 @@ export function validatePort(varName) {
   const value = process.env[varName];
   const port = parseInt(value, 10);
   
-  if (isNaN(port) {
+  if (isNaN(port)) {
     const errorMessage = `Invalid port number in ${varName}`;
     logger.error(errorMessage);
     throw new ValidationError(errorMessage);

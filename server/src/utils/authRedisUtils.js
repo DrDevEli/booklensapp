@@ -1,6 +1,6 @@
 import redis from '../config/redis.js';
 import User from '../models/User.js';
-import logger from './logger.js';
+import logger from '../config/logger.js';
 
 const LOGIN_ATTEMPT_LIMIT = 5;
 const LOGIN_ATTEMPT_TTL_SECONDS = 86400; // 1 day

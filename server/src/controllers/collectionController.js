@@ -1,6 +1,6 @@
 import BookCollection from '../models/BookCollection.js';
 import { ApiError } from '../utils/errors.js';
-import logger from '../utils/logger.js';
+import logger from '../config/logger.js';
 
 class CollectionController {
   static async createCollection(req, res, next) {

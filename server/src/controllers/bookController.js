@@ -2,7 +2,7 @@ import bookSearchService from '../services/bookSearchService.js';
 import advancedSearchService from '../services/advancedSearchService.js';
 import { ApiError } from '../utils/errors.js';
 import redis from '../utils/redis.js';
-import logger from '../utils/logger.js';
+import logger from '../config/logger.js';
 
 class BookController {
   static async searchBooks(req, res, next) {
