@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import logger from './logger.js';
+import { isJwtWhitelisted } from './authRedisUtils.js';
 
 /**
  * Generate access and refresh tokens for a user

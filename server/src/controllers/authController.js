@@ -5,7 +5,7 @@ import mongoose from 'mongoose';
 import User from '../models/User.js';
 import { ApiError } from '../utils/errors.js';
 import { generateTokens } from '../utils/jwtUtils.js';
-import { isJwtBlacklisted } from '../utils/authRedisUtils.js';
+import { isJwtBlacklisted, whitelistJwt } from '../utils/authRedisUtils.js';
 import logger from '../utils/logger.js';
 import * as emailVerificationController from '../emailVerificationController.js';
 import * as passwordResetController from '../passwordResetController.js';

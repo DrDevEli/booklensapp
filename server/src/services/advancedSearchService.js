@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { ApiError } from '../utils/errors.js';
-import redis from '../utils/redis.js';
+import redis from '../config/redis.js';
 import logger from '../utils/logger.js';
 
 const BOOK_API_ENDPOINT = process.env.BOOK_API_ENDPOINT;
