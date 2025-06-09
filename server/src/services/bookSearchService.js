@@ -28,8 +28,12 @@ class BookSearchService {
 
   async search({ query, searchType, page = 1 }) {
     try {
+      if (!query || query.trim().length === 0) {
+        throw new ApiError(400, 'Search query cannot be empty');
+      }
+
       const params = {
-        [searchType === 'title' ? 'title' : 'search']: query,
+        [searchType === 'title' ? 'title' : 'search']: query.trim(),
         page,
         itemsPerPage: ITEMS_PER_PAGE
       };

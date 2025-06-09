@@ -33,6 +33,21 @@ class AdvancedSearchService {
    */
   async advancedSearch({ title, author, genre, publishedAfter, publishedBefore, sortBy, page = 1 }) {
     try {
+      // Validate at least one search parameter is provided
+      if (!title && !author && !genre && !publishedAfter && !publishedBefore) {
+        throw new ApiError(400, 'At least one search parameter must be provided');
+      }
+
+      // Validate individual parameters that shouldn't be empty
+      if (title && title.trim().length === 0) {
+        throw new ApiError(400, 'Title cannot be empty if provided');
+      }
+      if (author && author.trim().length === 0) {
+        throw new ApiError(400, 'Author cannot be empty if provided');
+      }
+      if (genre && genre.trim().length === 0) {
+        throw new ApiError(400, 'Genre cannot be empty if provided');
+      }
       // Create a cache key based on all search parameters
       const cacheKey = `search:advanced:${JSON.stringify({
         title, author, genre, publishedAfter, publishedBefore, sortBy, page
