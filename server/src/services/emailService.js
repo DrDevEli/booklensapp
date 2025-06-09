@@ -21,24 +21,22 @@ let transporter;
  */
 async function initializeTransporter() {
   try {
-    // If we're in development and no SMTP credentials are provided, use Ethereal
-    if (emailConfig.NODE_ENV === 'development' && 
-        (!emailConfig.SMTP_HOST || !emailConfig.SMTP_USER || !emailConfig.SMTP_PASS)) {
-      testAccount = await nodemailer.createTestAccount();
-      
-      transporter = nodemailer.createTransport({
-        host: 'smtp.ethereal.email',
-        port: 587,
-        secure: false,
-        auth: {
-          user: testAccount.user,
-          pass: testAccount.pass
+    // Skip email setup in development if disabled
+    if (emailConfig.NODE_ENV === 'development') {
+      transporter = {
+        sendMail: () => {
+          logger.info('Email sending disabled in development mode');
+          return Promise.resolve({
+            messageId: 'mock-message-id',
+            accepted: [],
+            rejected: [],
+            envelopeTime: 0,
+            messageTime: 0,
+            response: '250 Email disabled in development'
+          });
         }
-      });
-      
-      logger.info('Using Ethereal test account for email', { 
-        user: testAccount.user 
-      });
+      };
+      logger.info('Email service running in development mode (sending disabled)');
     } else {
       // Use provided SMTP credentials
       transporter = nodemailer.createTransport({
