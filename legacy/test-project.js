@@ -1,4 +1,3 @@
-import axios from 'axios';
 import Redis from 'ioredis';
 import mongoose from 'mongoose';
 
