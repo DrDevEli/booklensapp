@@ -4,11 +4,37 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 dotenv.config();
 
-// Logger setup
+/**
+ * Simple logger implementation for testing
+ * @type {Object}
+ */
 const logger = {
+  /**
+   * Log info message
+   * @param {string} msg 
+   * @param {Object} [data] 
+   */
   info: (msg, data) => console.log(`[INFO] ${msg}`, data ? JSON.stringify(data) : ''),
+  
+  /**
+   * Log error message  
+   * @param {string} msg
+   * @param {Object} [data]
+   */
   error: (msg, data) => console.error(`[ERROR] ${msg}`, data ? JSON.stringify(data) : ''),
+  
+  /**
+   * Log success message
+   * @param {string} msg 
+   * @param {Object} [data]
+   */
   success: (msg, data) => console.log(`[SUCCESS] ${msg}`, data ? JSON.stringify(data) : ''),
+  
+  /** 
+   * Log warning message
+   * @param {string} msg
+   * @param {Object} [data] 
+   */
   warn: (msg, data) => console.warn(`[WARNING] ${msg}`, data ? JSON.stringify(data) : '')
 };
 

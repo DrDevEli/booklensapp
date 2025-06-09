@@ -5,8 +5,18 @@ const BOOK_API_ENDPOINT = process.env.BOOK_API_ENDPOINT;
 const API_KEY = process.env.BOOK_API_KEY;
 const ITEMS_PER_PAGE = 10;
 
+/**
+ * Service for searching books from external API
+ */
 class BookSearchService {
+  /**
+   * Create BookSearchService instance
+   */
   constructor() {
+    if (!BOOK_API_ENDPOINT || !API_KEY) {
+      throw new Error('Book API configuration missing');
+    }
+
     this.axiosInstance = axios.create({
       baseURL: BOOK_API_ENDPOINT,
       timeout: parseInt(process.env.BOOK_API_TIMEOUT || '5000'),

@@ -19,6 +19,18 @@ class AdvancedSearchService {
     });
   }
 
+  /**
+   * Perform advanced book search with multiple filters
+   * @param {Object} params - Search parameters
+   * @param {string} [params.title] - Title to search
+   * @param {string} [params.author] - Author name 
+   * @param {string} [params.genre] - Genre filter
+   * @param {string} [params.publishedAfter] - Published after date (YYYY-MM-DD)
+   * @param {string} [params.publishedBefore] - Published before date (YYYY-MM-DD) 
+   * @param {string} [params.sortBy] - Sort field
+   * @param {number} [params.page=1] - Page number
+   * @returns {Promise<Object>} Search results with pagination
+   */
   async advancedSearch({ title, author, genre, publishedAfter, publishedBefore, sortBy, page = 1 }) {
     try {
       // Create a cache key based on all search parameters
