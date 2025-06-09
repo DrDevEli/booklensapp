@@ -10,7 +10,15 @@ import { isJwtWhitelisted } from './authRedisUtils.js';
  * @param {number} tokenVersion - The user's token version (for invalidation)
  * @returns {Object} Object containing accessToken, refreshToken, and jti
  */
-export const generateTokens = (userId, role, tokenVersion = Date.now()) => {
+/**
+ * Generate access and refresh tokens for a user
+ * @param {string} userId - The user ID
+ * @param {string} role - The user's role 
+ * @param {number} [tokenVersion=Date.now()] - Token version for invalidation
+ * @returns {Promise<{accessToken: string, refreshToken: string, jti: string}>} Token objects
+ * @throws {Error} If token generation fails
+ */
+export const generateTokens = async (userId, role, tokenVersion = Date.now()) => {
     try {
         const jti = uuidv4();
         

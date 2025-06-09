@@ -4,7 +4,12 @@ import { ApiError } from '../utils/errors.js';
 import { generateTokens } from '../utils/jwtUtils.js';
 import logger from '../config/logger.js';
 import crypto from 'crypto';
-import { incrementLoginAttempts, clearLoginAttempts } from '../utils/authRedisUtils.js';
+import {                                                                            
+  incrementLoginAttempts,                                                           
+  clearLoginAttempts,                                                               
+  removeFromWhitelist,                                                              
+  blacklistJwt                                                                      
+} from '../utils/authRedisUtils.js'; 
 
 class UserController {
   static async register(req, res, next) {

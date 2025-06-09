@@ -1,5 +1,5 @@
 import redis from '../config/redis.js';
-import logger from './logger.js';
+import logger from '../config/logger.js';
 
 const DEFAULT_TTL = 3600; // 1 hour
 const DEFAULT_PREFIX = process.env.NODE_ENV === 'test' ? 'test:' : 'booklens-cache:';

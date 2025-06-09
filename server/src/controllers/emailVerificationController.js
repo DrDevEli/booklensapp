@@ -125,4 +125,25 @@ export async function resendVerificationEmail(email) {
     });
     throw error;
   }
+};
+
+export async function resendVerificationEmailHandler(req, res, next) {
+  try {
+    const email = req.user?.email || req.body?.email;
+
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email is required' });
+    }
+
+    await resendVerificationEmail(email);
+
+    res.status(200).json({
+      success: true,
+      message: 'Verification email sent (if applicable)'
+    });
+  } catch (error) {
+    next(error);
+  }
 }
+
+

@@ -1,6 +1,6 @@
 import nodemailer from 'nodemailer';
 import { getEnvConfig } from '../utils/envValidator.js';
-import logger from '../utils/logger.js';
+import logger from '../config/logger.js';
 
 // Get email configuration from environment
 const emailConfig = getEnvConfig({

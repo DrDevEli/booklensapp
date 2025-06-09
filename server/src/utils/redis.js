@@ -1,5 +1,5 @@
-import redis from './server/src/config/redis.js';
-import logger from './server/src/config/logger.js';
+import redis from '../config/redis.js';
+import logger from '../config/logger.js';
 
 /**
  * Cache data with TTL and optional tags for invalidation
