@@ -40,16 +40,15 @@ const NODE_ENV = env.NODE_ENV;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Connect to MongoDB with enhanced configuration
+/// Enhanced Mongoose connection options 
 const mongoOptions = {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-  serverSelectionTimeoutMS: 5000,
-  maxPoolSize: 10,
-  retryWrites: true,
-  w: 'majority'
+  serverSelectionTimeoutMS: 5000, // Fail fast if MongoDB is not available
+  maxPoolSize: 10,                // Max number of connections in pool
+  retryWrites: true,              // Retry failed writes automatically
+  w: 'majority'                   // Write concern level
 };
 
+// Connect to MongoDB
 mongoose.connect(env.MONGODB_URI, mongoOptions)
   .then(() => {
     console.log('✅ MongoDB connected');
@@ -61,7 +60,7 @@ mongoose.connect(env.MONGODB_URI, mongoOptions)
     process.exit(1); // Exit on DB connection failure
   });
 
-// MongoDB connection events
+// Handle MongoDB connection events
 mongoose.connection.on('disconnected', () => {
   console.warn('⚠️ MongoDB disconnected');
 });
