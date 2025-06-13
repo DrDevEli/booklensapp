@@ -8,7 +8,9 @@ dotenv.config();
  * Simple logger implementation for testing
  * @type {Object}
  */
+
 const logger = {
+
   /**
    * Log info message
    * @param {string} msg 
