@@ -2,11 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Route, Routes, useParams, Navigate } from 'react-router-dom';
 import api from './api';
 import { isAuthenticated } from './auth';
-
-// Placeholder components
-const Home = () => <div>Home Page</div>;
-const Login = () => <div>Login Page</div>;
-const Register = () => <div>Register Page</div>;
+import { MainLayout } from './components/layout/MainLayout';
+import { Home } from './pages/Home';
+import { Login } from './pages/Login';
+import { Register } from './pages/Register';
+import { BookSearch } from './components/BookSearch';
 
 // ProtectedRoute component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -51,15 +51,23 @@ const Collections = () => <div>Collections Page</div>;
 function App() {
   return (
     <Router>
-      <div className="App">
+      <MainLayout>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/search" element={<BookSearch />} />
           <Route path="/books/:id" element={<BookDetails />} />
-          <Route path="/collections" element={<ProtectedRoute><Collections /></ProtectedRoute>} />
+          <Route
+            path="/collections"
+            element={
+              <ProtectedRoute>
+                <Collections />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
-      </div>
+      </MainLayout>
     </Router>
   );
 }

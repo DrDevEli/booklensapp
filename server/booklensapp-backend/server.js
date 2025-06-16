@@ -3,13 +3,18 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import compression from 'compression';
-import passport from './config/passport.js';
-import { errorHandler } from './utils/errors.js';
-import authRoutes from './routes/authRoutes.js';
-import bookRoutes from './routes/bookRoutes.js';
-import logger from './utils/logger.js';
-import securityMiddleware from './middleware/security.js';
-import { validateEnv, getEnvConfig, validateRedisConfig } from './utils/envValidator.js';
+import passport from './src/config/passport.js';
+import { errorHandler } from './src/utils/errors.js';
+import authRoutes from './src/routes/authRoutes.js';
+import bookRoutes from './src/routes/bookRoutes.js';
+import logger from './src/config/logger.js';
+import securityMiddleware from './src/middleware/security.js';
+import { validateEnv, getEnvConfig, validateRedisConfig } from './src/utils/envValidator.js';
+import swaggerUi from 'swagger-ui-express';
+
+
+// Load Swagger document
+
 
 // Load environment variables
 dotenv.config();
@@ -24,7 +29,7 @@ validateEnv([
 
 // Get configuration from environment
 const config = getEnvConfig({
-  PORT: { type: 'number', default: 3000 },
+  PORT: { type: 'number', default: 3001 },
   NODE_ENV: { default: 'development' },
   CORS_ORIGIN: { default: '*' },
   MONGODB_URI: { required: true },
@@ -40,7 +45,7 @@ securityMiddleware(app);
 
 // Configure CORS
 const corsOptions = {
-  origin: config.CORS_ORIGIN === '*' ? '*' : config.CORS_ORIGIN.split(','),
+  origin: 'http://localhost:3000',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
   credentials: true,
@@ -132,25 +137,12 @@ app.post('/api/chefaodacasa/cache/reset', async (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/books', bookRoutes);
 
-// API Documentation
-import swaggerUi from 'swagger-ui-express';
-import { readFileSync } from 'fs';
-import { join } from 'path';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-let swaggerDocument;
-try {
-  const swaggerPath = join(__dirname, 'docs', 'swagger.json');
-  swaggerDocument = JSON.parse(readFileSync(swaggerPath, 'utf8'));
-  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
-  logger.info('API documentation loaded successfully');
-} catch (error) {
-  logger.error('Failed to load API documentation', { error: error.message });
-}
+// Add Swagger documentation
+// app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, {
+//   explorer: true,
+//   customCss: '.swagger-ui .topbar { display: none }',
+//   customSiteTitle: "BookLens API Documentation"
+// }));
 
 // Error handling
 app.use(errorHandler);

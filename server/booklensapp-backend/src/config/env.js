@@ -28,7 +28,7 @@ const env = cleanEnv(process.env, {
 		desc: 'Current environment mode'
 	}),
 	REDIS_HOST: str({ default: 'localhost', desc: 'Redis server host' }),
-	REDIS_PORT: num({ default: 6379, desc: 'Redis server port' }),
+	REDIS_PORT: num({ default: 17046, desc: 'Redis server port' }),
 	FRONTEND_URL: url({
 		default: 'http://localhost:3000',
 		desc: 'Base URL for frontend (used for CORS, etc)'

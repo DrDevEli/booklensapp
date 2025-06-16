@@ -1,4 +1,5 @@
-import bookSearchService from '../services/bookSearchService.js';
+
+import {BookSearchService} from '../services/bookSearchService.js';
 import advancedSearchService from '../services/advancedSearchService.js';
 import { ApiError } from '../utils/errors.js';
 import redis from '../utils/redis.js';
@@ -14,10 +15,9 @@ class BookController {
       const cached = await redis.get(cacheKey);
       if (cached) {
         const parsed = JSON.parse(cached);
-        return res.render('books', {
-          data: parsed.data,
-          query: q,
-          searchType: 'author',
+        return res.json({
+          success: true,
+          books: parsed.data,
           pagination: parsed.pagination
         });
       }
@@ -30,10 +30,9 @@ class BookController {
 
       await redis.set(cacheKey, JSON.stringify(result), 'EX', 3600); // cache 1 hour
 
-      res.render('books', {
-        data: result.data,
-        query: q,
-        searchType: 'author',
+      res.json({
+        success: true,
+        books: result.data,
         pagination: result.pagination
       });
     } catch (error) {
