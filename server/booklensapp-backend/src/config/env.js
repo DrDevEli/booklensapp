@@ -14,7 +14,7 @@ dotenv.config();
 
 const env = cleanEnv(process.env, {
 	MONGODB_URI: str({ desc: 'MongoDB connection string' }),
-	PORT: num({ default: 3323, desc: 'Port to run the server on' }),
+	PORT: num({ default: 3001, desc: 'Port to run the server on' }),
 	JWT_SECRET: str({ desc: '32+ character secret for JWT signing' }),
 	JWT_EXPIRES_IN: str({ default: '1h', desc: 'JWT expiration time' }),
 	JWT_REFRESH_SECRET: str({

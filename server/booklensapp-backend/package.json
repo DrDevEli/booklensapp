@@ -10,7 +10,8 @@
     "test": "jest",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "docs:generate": "swagger-autogen swagger.js"
+    "docs:generate": "swagger-autogen swagger.js",
+    "check-ports": "node scripts/check-ports.js"
   },
   "dependencies": {
     "compression": "^1.7.4",
@@ -28,7 +29,7 @@
     "@babel/core": "^7.21.4",
     "@babel/preset-env": "^7.21.4",
     "babel-jest": "^29.5.0",
-    "eslint": "^8.37.0",
+    "eslint": "^9.29.0",
     "jest": "^29.5.0",
     "nodemon": "^3.1.10",
     "prettier": "^2.8.7"

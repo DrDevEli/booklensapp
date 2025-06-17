@@ -11,13 +11,31 @@ import logger from './src/config/logger.js';
 import securityMiddleware from './src/middleware/security.js';
 import { validateEnv, getEnvConfig, validateRedisConfig } from './src/utils/envValidator.js';
 import swaggerUi from 'swagger-ui-express';
-
-
-// Load Swagger document
-
+import swaggerJsdoc from 'swagger-jsdoc';
 
 // Load environment variables
 dotenv.config();
+
+// Swagger configuration
+const swaggerOptions = {
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'BookLens API',
+      version: '1.0.0',
+      description: 'API documentation for BookLens application',
+    },
+    servers: [
+      {
+        url: `http://localhost:${config.PORT || 3001}`,
+        description: 'Development server',
+      },
+    ],
+  },
+  apis: ['./src/routes/*.js'], // Path to the API docs
+};
+
+const swaggerSpec = swaggerJsdoc(swaggerOptions);
 
 // Validate required environment variables
 validateEnv([
@@ -138,11 +156,11 @@ app.use('/api/auth', authRoutes);
 app.use('/api/books', bookRoutes);
 
 // Add Swagger documentation
-// app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, {
-//   explorer: true,
-//   customCss: '.swagger-ui .topbar { display: none }',
-//   customSiteTitle: "BookLens API Documentation"
-// }));
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  explorer: true,
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: "BookLens API Documentation"
+}));
 
 // Error handling
 app.use(errorHandler);

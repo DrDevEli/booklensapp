@@ -1,4 +1,5 @@
 import swaggerAutogen from 'swagger-autogen';
+import env from './env.js';
 
 const doc = {
   info: {
@@ -10,8 +11,8 @@ const doc = {
       email: 'support@booklens.com'
     }
   },
-  host: 'localhost:3001',
-  basePath: '/api',
+  host: env.API_HOST || 'localhost:3001',
+  basePath: '/api/v1',
   schemes: ['http', 'https'],
   securityDefinitions: {
     bearerAuth: {
@@ -68,6 +69,20 @@ const doc = {
       status: 'error',
       message: 'Error message',
       code: 400
+    },
+    PaginatedResponse: {
+      data: [],
+      pagination: {
+        total: 0,
+        page: 1,
+        limit: 10,
+        pages: 1
+      }
+    },
+    RateLimitHeaders: {
+      'X-RateLimit-Limit': 100,
+      'X-RateLimit-Remaining': 99,
+      'X-RateLimit-Reset': 60
     }
   }
 };

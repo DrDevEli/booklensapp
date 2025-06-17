@@ -1,10 +1,10 @@
 import request from 'supertest';
 import mongoose from 'mongoose';
 import jwt from 'jsonwebtoken';
-import { generateTokens } from '../utils/jwtUtils.js';
+import { generateTokens } from '../src/utils/jwtUtils.js';
 
 // Mock User model
-jest.mock('../models/User.js', () => ({
+jest.mock('../src/models/User.js', () => ({
   __esModule: true,
   default: {
     findOne: jest.fn(),
