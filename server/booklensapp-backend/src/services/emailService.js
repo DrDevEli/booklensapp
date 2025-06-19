@@ -1,16 +1,16 @@
 // External dependencies
-import nodemailer from 'nodemailer';
-import { getEnvConfig } from '../utils/envValidator.js';
-import logger from '../config/logger.js';
+import nodemailer from "nodemailer";
+import { getEnvConfig } from "../utils/envValidator.js";
+import logger from "../config/logger.js";
 
 //  Load configuration from environment variables using a safe validator
 const emailConfig = getEnvConfig({
-  SMTP_HOST: { default: '' },
-  SMTP_PORT: { type: 'number', default: 587 },
-  SMTP_USER: { default: '' },
-  SMTP_PASS: { default: '' },
-  FRONTEND_URL: { default: 'http://localhost:3000' },
-  NODE_ENV: { default: 'development' }
+  SMTP_HOST: { default: "" },
+  SMTP_PORT: { type: "number", default: 587 },
+  SMTP_USER: { default: "" },
+  SMTP_PASS: { default: "" },
+  FRONTEND_URL: { default: "http://localhost:3000" },
+  NODE_ENV: { default: "development" },
 });
 
 // Email transporter instance (will be created on app startup)
@@ -23,22 +23,22 @@ let transporter;
  */
 async function initializeTransporter() {
   try {
-    if (emailConfig.NODE_ENV === 'development') {
+    if (emailConfig.NODE_ENV === "development") {
       // Create a fake transporter that logs instead of sending emails
       transporter = {
         sendMail: () => {
-          logger.info('📨 Email sending disabled in development mode');
+          logger.info("📨 Email sending disabled in development mode");
           return Promise.resolve({
-            messageId: 'mock-message-id',
+            messageId: "mock-message-id",
             accepted: [],
             rejected: [],
             envelopeTime: 0,
             messageTime: 0,
-            response: '250 Email disabled in development'
+            response: "250 Email disabled in development",
           });
-        }
+        },
       };
-      logger.info('📧 Email service running in development mode');
+      logger.info("📧 Email service running in development mode");
     } else {
       // Create a real SMTP transporter
       transporter = nodemailer.createTransport({
@@ -47,22 +47,24 @@ async function initializeTransporter() {
         secure: emailConfig.SMTP_PORT === 465, // true if port is 465
         auth: {
           user: emailConfig.SMTP_USER,
-          pass: emailConfig.SMTP_PASS
-        }
+          pass: emailConfig.SMTP_PASS,
+        },
       });
 
-      logger.info('📬 Email transporter initialized with SMTP settings');
+      logger.info("📬 Email transporter initialized with SMTP settings");
     }
 
     // Only call verify if available (not in mock mode)
-    if (typeof transporter.verify === 'function') {
+    if (typeof transporter.verify === "function") {
       await transporter.verify();
-      logger.info('✅ Email service is ready');
+      logger.info("✅ Email service is ready");
     }
 
     return true;
   } catch (error) {
-    logger.error('❌ Failed to initialize email service', { error: error.message });
+    logger.error("❌ Failed to initialize email service", {
+      error: error.message,
+    });
     return false;
   }
 }
@@ -76,33 +78,35 @@ async function sendEmail({ to, subject, html, text }) {
     if (!transporter) await initializeTransporter();
 
     const mailOptions = {
-      from: `"BookLens API" <${emailConfig.SMTP_USER || 'noreply@booklens.com'}>`,
+      from: `"BookLens API" <${
+        emailConfig.SMTP_USER || "noreply@booklens.com"
+      }>`,
       to,
       subject,
       html,
-      text
+      text,
     };
 
     const info = await transporter.sendMail(mailOptions);
 
-    logger.info('📨 Email sent successfully', {
+    logger.info("📨 Email sent successfully", {
       messageId: info.messageId,
-      to
+      to,
     });
 
     return {
       success: true,
-      messageId: info.messageId
+      messageId: info.messageId,
     };
   } catch (error) {
-    logger.error('❌ Failed to send email', {
+    logger.error("❌ Failed to send email", {
       error: error.message,
-      to
+      to,
     });
 
     return {
       success: false,
-      error: error.message
+      error: error.message,
     };
   }
 }
@@ -126,9 +130,9 @@ async function sendVerificationEmail(email, token, username) {
 
   return sendEmail({
     to: email,
-    subject: 'Verify Your Email - BookLens',
+    subject: "Verify Your Email - BookLens",
     html,
-    text
+    text,
   });
 }
 
@@ -151,9 +155,9 @@ async function sendPasswordResetEmail(email, token, username) {
 
   return sendEmail({
     to: email,
-    subject: 'Reset Your Password - BookLens',
+    subject: "Reset Your Password - BookLens",
     html,
-    text
+    text,
   });
 }
 
@@ -164,5 +168,5 @@ initializeTransporter();
 export default {
   sendEmail,
   sendVerificationEmail,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
 };

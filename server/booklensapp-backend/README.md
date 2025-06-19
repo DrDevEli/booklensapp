@@ -39,11 +39,13 @@ CORS_ORIGIN=http://localhost:3000
 ## Installation
 
 1. Install dependencies:
+
    ```bash
    npm install
    ```
 
 2. Start the development server:
+
    ```bash
    npm run dev
    ```
@@ -60,6 +62,7 @@ API documentation is available at `/api-docs` when the server is running.
 ## Testing
 
 Run tests with:
+
 ```bash
 npm test
 ```
@@ -72,4 +75,4 @@ npm test
 - API documentation with Swagger
 - Error handling and logging
 - Security middleware
-- Compression and CORS support 
+- Compression and CORS support

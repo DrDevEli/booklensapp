@@ -1,5 +1,5 @@
-import redis from '../config/redis.js';
-import logger from '../config/logger.js';
+import redis from "../config/redis.js";
+import logger from "../config/logger.js";
 
 /**
  * Cache data with TTL and optional tags for invalidation
@@ -12,22 +12,22 @@ import logger from '../config/logger.js';
 export const cacheWithTags = async (key, data, tags = [], ttl = 3600) => {
   try {
     const pipeline = redis.pipeline();
-    
+
     // Store the actual data
-    pipeline.set(key, JSON.stringify(data), 'EX', ttl);
-    
+    pipeline.set(key, JSON.stringify(data), "EX", ttl);
+
     // Associate this key with provided tags for easier invalidation
     for (const tag of tags) {
       pipeline.sadd(`tag:${tag}`, key);
       // Set expiry on tag to avoid memory leaks
       pipeline.expire(`tag:${tag}`, ttl * 2);
     }
-    
+
     await pipeline.exec();
-    logger.debug('Data cached', { key, tags, ttl });
+    logger.debug("Data cached", { key, tags, ttl });
     return true;
   } catch (error) {
-    logger.error('Redis cache error', { error: error.message, key });
+    logger.error("Redis cache error", { error: error.message, key });
     return false;
   }
 };
@@ -41,14 +41,14 @@ export const getCached = async (key) => {
   try {
     const data = await redis.get(key);
     if (!data) {
-      logger.debug('Cache miss', { key });
+      logger.debug("Cache miss", { key });
       return null;
     }
-    
-    logger.debug('Cache hit', { key });
+
+    logger.debug("Cache hit", { key });
     return JSON.parse(data);
   } catch (error) {
-    logger.error('Redis get error', { error: error.message, key });
+    logger.error("Redis get error", { error: error.message, key });
     return null;
   }
 };
@@ -62,26 +62,26 @@ export const invalidateByTags = async (tags = []) => {
   try {
     const pipeline = redis.pipeline();
     let keysDeleted = 0;
-    
+
     for (const tag of tags) {
       // Get all keys associated with this tag
       const keys = await redis.smembers(`tag:${tag}`);
-      
+
       // Delete all these keys
       if (keys.length > 0) {
         pipeline.del(...keys);
         keysDeleted += keys.length;
       }
-      
+
       // Delete the tag itself
       pipeline.del(`tag:${tag}`);
     }
-    
+
     await pipeline.exec();
-    logger.info('Cache invalidated by tags', { tags, keysDeleted });
+    logger.info("Cache invalidated by tags", { tags, keysDeleted });
     return true;
   } catch (error) {
-    logger.error('Redis invalidation error', { error: error.message, tags });
+    logger.error("Redis invalidation error", { error: error.message, tags });
     return false;
   }
 };
@@ -95,11 +95,11 @@ export const invalidateByTags = async (tags = []) => {
  */
 export const setCache = async (key, data, ttl = 3600) => {
   try {
-    await redis.set(key, JSON.stringify(data), 'EX', ttl);
-    logger.debug('Data cached', { key, ttl });
+    await redis.set(key, JSON.stringify(data), "EX", ttl);
+    logger.debug("Data cached", { key, ttl });
     return true;
   } catch (error) {
-    logger.error('Redis set error', { error: error.message, key });
+    logger.error("Redis set error", { error: error.message, key });
     return false;
   }
 };
@@ -112,10 +112,10 @@ export const setCache = async (key, data, ttl = 3600) => {
 export const deleteCache = async (key) => {
   try {
     await redis.del(key);
-    logger.debug('Cache key deleted', { key });
+    logger.debug("Cache key deleted", { key });
     return true;
   } catch (error) {
-    logger.error('Redis delete error', { error: error.message, key });
+    logger.error("Redis delete error", { error: error.message, key });
     return false;
   }
 };

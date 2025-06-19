@@ -1,7 +1,7 @@
-import express from 'express';
-import BookController from '../controllers/bookController.js';
-import { authMiddleware } from '../middleware/authMiddleware.js';
-import { rateLimiterMiddleware } from '../middleware/rateLimiter.js';
+import express from "express";
+import BookController from "../controllers/bookController.js";
+import { authMiddleware } from "../middleware/authMiddleware.js";
+import rateLimiterMiddleware from "../middleware/rateLimiter.js";
 
 const router = express.Router();
 
@@ -52,20 +52,25 @@ const router = express.Router();
  *             schema:
  *               $ref: '#/definitions/Error'
  */
-router.get('/search', rateLimiterMiddleware, BookController.searchBooks);
+router.get(
+  "/search",
+  authMiddleware(),
+  rateLimiterMiddleware,
+  BookController.searchBooks
+);
 
-router.get('/search/title', (req, res, next) => {
-  if (typeof BookController.searchBooksByTitle === 'function') {
+router.get("/search/title", (req, res, next) => {
+  if (typeof BookController.searchBooksByTitle === "function") {
     return BookController.searchBooksByTitle(req, res, next);
   }
-  res.status(501).json({ message: 'Not implemented yet' });
+  res.status(501).json({ message: "Not implemented yet" });
 });
 
-router.get('/search/advanced', (req, res, next) => {
-  if (typeof BookController.advancedSearch === 'function') {
+router.get("/search/advanced", (req, res, next) => {
+  if (typeof BookController.advancedSearch === "function") {
     return BookController.advancedSearch(req, res, next);
   }
-  res.status(501).json({ message: 'Not implemented yet' });
+  res.status(501).json({ message: "Not implemented yet" });
 });
 
 /**
@@ -96,6 +101,6 @@ router.get('/search/advanced', (req, res, next) => {
  *             schema:
  *               $ref: '#/definitions/Error'
  */
-router.get('/:id', rateLimiterMiddleware, BookController.getBookById);
+router.get("/:id", rateLimiterMiddleware, BookController.getBookById);
 
 export default router;

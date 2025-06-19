@@ -1,7 +1,7 @@
-import express from 'express';
-import CollectionController from '../controllers/collectionController.js';
-import { authMiddleware } from '../middleware/authMiddleware.js';
-import { rateLimiterMiddleware } from '../middleware/rateLimiter.js';
+import express from "express";
+import CollectionController from "../controllers/collectionController.js";
+import { authMiddleware } from "../middleware/authMiddleware.js";
+import { rateLimiterMiddleware } from "../middleware/rateLimiter.js";
 
 const router = express.Router();
 
@@ -52,7 +52,12 @@ const router = express.Router();
  *             schema:
  *               $ref: '#/definitions/Error'
  */
-router.post('/', authMiddleware(), rateLimiterMiddleware, CollectionController.createCollection);
+router.post(
+  "/",
+  authMiddleware(),
+  rateLimiterMiddleware,
+  CollectionController.createCollection
+);
 
 /**
  * @swagger
@@ -92,7 +97,12 @@ router.post('/', authMiddleware(), rateLimiterMiddleware, CollectionController.c
  *             schema:
  *               $ref: '#/definitions/Error'
  */
-router.get('/', authMiddleware(), rateLimiterMiddleware, CollectionController.getUserCollections);
+router.get(
+  "/",
+  authMiddleware(),
+  rateLimiterMiddleware,
+  CollectionController.getUserCollections
+);
 
 /**
  * @swagger
@@ -126,10 +136,27 @@ router.get('/', authMiddleware(), rateLimiterMiddleware, CollectionController.ge
  *             schema:
  *               $ref: '#/definitions/Error'
  */
-router.get('/:id', authMiddleware(), rateLimiterMiddleware, CollectionController.getCollectionById);
+router.get(
+  "/:id",
+  authMiddleware(),
+  rateLimiterMiddleware,
+  CollectionController.getCollectionById
+);
 
-router.post('/:collectionId/books', authMiddleware(), CollectionController.addBookToCollection);
-router.put('/:collectionId/books/:bookId', authMiddleware(), CollectionController.updateBookInCollection);
-router.delete('/:collectionId/books/:bookId', authMiddleware(), CollectionController.removeBookFromCollection);
+router.post(
+  "/:collectionId/books",
+  authMiddleware(),
+  CollectionController.addBookToCollection
+);
+router.put(
+  "/:collectionId/books/:bookId",
+  authMiddleware(),
+  CollectionController.updateBookInCollection
+);
+router.delete(
+  "/:collectionId/books/:bookId",
+  authMiddleware(),
+  CollectionController.removeBookFromCollection
+);
 
 export default router;

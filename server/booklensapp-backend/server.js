@@ -1,58 +1,62 @@
-import express from 'express';
-import mongoose from 'mongoose';
-import dotenv from 'dotenv';
-import cors from 'cors';
-import compression from 'compression';
-import passport from './src/config/passport.js';
-import { errorHandler } from './src/utils/errors.js';
-import authRoutes from './src/routes/authRoutes.js';
-import bookRoutes from './src/routes/bookRoutes.js';
-import logger from './src/config/logger.js';
-import securityMiddleware from './src/middleware/security.js';
-import { validateEnv, getEnvConfig, validateRedisConfig } from './src/utils/envValidator.js';
-import swaggerUi from 'swagger-ui-express';
-import swaggerJsdoc from 'swagger-jsdoc';
+import express from "express";
+import mongoose from "mongoose";
+import dotenv from "dotenv";
+import cors from "cors";
+import compression from "compression";
+import passport from "./src/config/passport.js";
+import { errorHandler } from "./src/utils/errors.js";
+import authRoutes from "./src/routes/authRoutes.js";
+import bookRoutes from "./src/routes/bookRoutes.js";
+import logger from "./src/config/logger.js";
+import securityMiddleware from "./src/middleware/security.js";
+import {
+  validateEnv,
+  getEnvConfig,
+  validateRedisConfig,
+} from "./src/utils/envValidator.js";
+import swaggerUi from "swagger-ui-express";
+import swaggerJsdoc from "swagger-jsdoc";
 
 // Load environment variables
 dotenv.config();
 
+// Get configuration from environment
+const config = getEnvConfig({
+  PORT: { type: "number", default: 3001 },
+  NODE_ENV: { default: "development" },
+  CORS_ORIGIN: { default: "*" },
+  MONGODB_URI: { required: true },
+  TRUST_PROXY: { type: "boolean", default: false },
+});
+
 // Swagger configuration
 const swaggerOptions = {
   definition: {
-    openapi: '3.0.0',
+    openapi: "3.0.0",
     info: {
-      title: 'BookLens API',
-      version: '1.0.0',
-      description: 'API documentation for BookLens application',
+      title: "BookLens API",
+      version: "1.0.0",
+      description: "API documentation for BookLens application",
     },
     servers: [
       {
         url: `http://localhost:${config.PORT || 3001}`,
-        description: 'Development server',
+        description: "Development server",
       },
     ],
   },
-  apis: ['./src/routes/*.js'], // Path to the API docs
+  apis: ["./src/routes/*.js"], // Path to the API docs
 };
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
 
 // Validate required environment variables
 validateEnv([
-  'SESSION_SECRET',
-  'JWT_SECRET',
-  'JWT_REFRESH_SECRET',
-  'MONGODB_URI'
+  "SESSION_SECRET",
+  "JWT_SECRET",
+  "JWT_REFRESH_SECRET",
+  "MONGODB_URI",
 ]);
-
-// Get configuration from environment
-const config = getEnvConfig({
-  PORT: { type: 'number', default: 3001 },
-  NODE_ENV: { default: 'development' },
-  CORS_ORIGIN: { default: '*' },
-  MONGODB_URI: { required: true },
-  TRUST_PROXY: { type: 'boolean', default: false }
-});
 
 // Initialize Express app
 const app = express();
@@ -63,11 +67,11 @@ securityMiddleware(app);
 
 // Configure CORS
 const corsOptions = {
-  origin: 'http://localhost:3000',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
+  origin: "http://localhost:3000",
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-CSRF-Token"],
   credentials: true,
-  maxAge: 86400 // 24 hours
+  maxAge: 86400, // 24 hours
 };
 app.use(cors(corsOptions));
 
@@ -75,92 +79,97 @@ app.use(cors(corsOptions));
 app.use(compression());
 
 // Body parsers
-app.use(express.json({ limit: '1mb' }));
-app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+app.use(express.json({ limit: "1mb" }));
+app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 
 // Initialize passport
 app.use(passport.initialize());
 
 // Basic health check route
-app.get('/health', async (req, res) => {
+app.get("/health", async (req, res) => {
   // Check Redis connection
-  let redisStatus = 'disconnected';
+  let redisStatus = "disconnected";
   try {
-    const redis = (await import('./config/redis.js')).default;
+    const redis = (await import("./config/redis.js")).default;
     await redis.ping();
-    redisStatus = 'connected';
+    redisStatus = "connected";
   } catch (error) {
-    logger.error('Redis health check failed', { error: error.message });
+    logger.error("Redis health check failed", { error: error.message });
   }
-  
+
   res.status(200).json({
-    status: 'ok',
+    status: "ok",
     timestamp: new Date().toISOString(),
-    mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+    mongodb:
+      mongoose.connection.readyState === 1 ? "connected" : "disconnected",
     redis: redisStatus,
     environment: process.env.NODE_ENV,
-    uptime: process.uptime()
+    uptime: process.uptime(),
   });
 });
 
 // Cache monitoring endpoint
-app.get('/api/chefaodacasa/cache/stats', async (req, res) => {
+app.get("/api/chefaodacasa/cache/stats", async (req, res) => {
   try {
-    const { cache } = await import('./utils/cache.js');
+    const { cache } = await import("./utils/cache.js");
     const stats = cache.stats.get();
-    
+
     // Calculate hit rate
     const total = stats.hits + stats.misses;
     const hitRate = total > 0 ? (stats.hits / total) * 100 : 0;
-    
+
     res.status(200).json({
       success: true,
       data: {
         ...stats,
-        hitRate: hitRate.toFixed(2) + '%',
+        hitRate: hitRate.toFixed(2) + "%",
         total,
-        uptime: Math.floor((Date.now() - stats.lastReset) / 1000) + 's'
-      }
+        uptime: Math.floor((Date.now() - stats.lastReset) / 1000) + "s",
+      },
     });
   } catch (error) {
-    logger.error('Error getting cache stats', { error: error.message });
+    logger.error("Error getting cache stats", { error: error.message });
     res.status(500).json({
       success: false,
-      error: 'Failed to get cache statistics'
+      error: "Failed to get cache statistics",
     });
   }
 });
 
 // Cache reset endpoint
-app.post('/api/chefaodacasa/cache/reset', async (req, res) => {
+app.post("/api/chefaodacasa/cache/reset", async (req, res) => {
   try {
-    const { cache } = await import('./utils/cache.js');
+    const { cache } = await import("./utils/cache.js");
     const stats = cache.stats.reset();
-    
+
     res.status(200).json({
       success: true,
-      message: 'Cache statistics reset successfully',
-      data: stats
+      message: "Cache statistics reset successfully",
+      data: stats,
     });
   } catch (error) {
-    logger.error('Error resetting cache stats', { error: error.message });
+    logger.error("Error resetting cache stats", { error: error.message });
     res.status(500).json({
       success: false,
-      error: 'Failed to reset cache statistics'
+      error: "Failed to reset cache statistics",
     });
   }
 });
 
 // Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/books', bookRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/books", bookRoutes);
 
 // Add Swagger documentation
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
-  explorer: true,
-  customCss: '.swagger-ui .topbar { display: none }',
-  customSiteTitle: "BookLens API Documentation"
-}));
+app.use(
+  "/api-docs",
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec, {
+    explorer: true,
+    customCss: ".swagger-ui .topbar { display: none }",
+    customSiteTitle: "BookLens API Documentation",
+  })
+);
 
 // Error handling
 app.use(errorHandler);
@@ -173,24 +182,26 @@ const connectWithRetry = async (retryCount = 5, delay = 5000) => {
       socketTimeoutMS: 45000,
       family: 4, // Use IPv4, skip trying IPv6
       maxPoolSize: 10,
-      minPoolSize: 2
+      minPoolSize: 2,
     };
-    
+
     await mongoose.connect(config.MONGODB_URI, mongooseOptions);
-    logger.info('Connected to MongoDB successfully');
+    logger.info("Connected to MongoDB successfully");
     return true;
   } catch (err) {
     if (retryCount === 0) {
-      logger.error('Failed to connect to MongoDB after multiple attempts', { error: err.message });
+      logger.error("Failed to connect to MongoDB after multiple attempts", {
+        error: err.message,
+      });
       return false;
     }
-    
-    logger.warn(`MongoDB connection failed, retrying in ${delay}ms...`, { 
+
+    logger.warn(`MongoDB connection failed, retrying in ${delay}ms...`, {
       attemptsRemaining: retryCount,
-      error: err.message
+      error: err.message,
     });
-    
-    await new Promise(resolve => setTimeout(resolve, delay));
+
+    await new Promise((resolve) => setTimeout(resolve, delay));
     return connectWithRetry(retryCount - 1, delay);
   }
 };
@@ -198,35 +209,37 @@ const connectWithRetry = async (retryCount = 5, delay = 5000) => {
 // Graceful shutdown function
 const gracefulShutdown = async (signal) => {
   logger.info(`${signal} received, starting graceful shutdown`);
-  
+
   // Close MongoDB connection
   if (mongoose.connection.readyState === 1) {
-    logger.info('Closing MongoDB connection');
+    logger.info("Closing MongoDB connection");
     await mongoose.connection.close();
-    logger.info('MongoDB connection closed');
+    logger.info("MongoDB connection closed");
   }
-  
+
   // Exit process
-  logger.info('Exiting process');
+  logger.info("Exiting process");
   process.exit(0);
 };
 
 // Register shutdown handlers
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 
 // Start server regardless of MongoDB connection status
 const startServer = () => {
   const server = app.listen(PORT, () => {
     logger.info(`Server running in ${config.NODE_ENV} mode on port ${PORT}`);
-    logger.info(`API documentation available at http://localhost:${PORT}/api-docs`);
+    logger.info(
+      `API documentation available at http://localhost:${PORT}/api-docs`
+    );
   });
-  
+
   // Set timeouts
   server.timeout = 30000; // 30 seconds
   server.keepAliveTimeout = 65000; // 65 seconds
   server.headersTimeout = 66000; // 66 seconds (slightly more than keepAliveTimeout)
-  
+
   return server;
 };
 
@@ -235,13 +248,17 @@ const startServer = () => {
   // Validate Redis configuration
   const redisConfigValid = validateRedisConfig();
   if (!redisConfigValid) {
-    logger.warn('Redis configuration is invalid. Cache features may not work properly.');
+    logger.warn(
+      "Redis configuration is invalid. Cache features may not work properly."
+    );
   }
-  
+
   // Try to connect to MongoDB but don't block server startup
-  connectWithRetry().then(connected => {
+  connectWithRetry().then((connected) => {
     if (!connected) {
-      logger.warn('Starting server without MongoDB connection. Some features will be unavailable.');
+      logger.warn(
+        "Starting server without MongoDB connection. Some features will be unavailable."
+      );
     }
     startServer();
   });

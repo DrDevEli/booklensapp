@@ -1,20 +1,20 @@
 // config/redis.js
-import Redis from 'ioredis';
-import logger from './logger.js';
-import { getEnvConfig } from '../../src/utils/envValidator.js';
+import Redis from "ioredis";
+import logger from "./logger.js";
+import { getEnvConfig } from "../../src/utils/envValidator.js";
 
 // Get Redis configuration from environment variables
 const redisConfig = getEnvConfig({
-  REDIS_HOST: { default: 'localhost' },
-  REDIS_PORT: { type: 'number', default: 17046 },
-  REDIS_PASSWORD: { default: '' },
-  REDIS_USERNAME: { default: '' },
-  REDIS_DB: { type: 'number', default: 0 },
-  REDIS_TLS_ENABLED: { type: 'boolean', default: false },
-  REDIS_CONNECT_TIMEOUT: { type: 'number', default: 5000 },
-  REDIS_MAX_RETRIES: { type: 'number', default: 3 },
-  REDIS_RETRY_DELAY: { type: 'number', default: 1000 },
-  NODE_ENV: { default: 'development' }
+  REDIS_HOST: { default: "localhost" },
+  REDIS_PORT: { type: "number", default: "17046" },
+  REDIS_PASSWORD: { default: "" },
+  REDIS_USERNAME: { default: "" },
+  REDIS_DB: { type: "number", default: 0 },
+  REDIS_TLS_ENABLED: { type: "boolean", default: false },
+  REDIS_CONNECT_TIMEOUT: { type: "number", default: 5000 },
+  REDIS_MAX_RETRIES: { type: "number", default: 3 },
+  REDIS_RETRY_DELAY: { type: "number", default: 1000 },
+  NODE_ENV: { default: "development" },
 });
 
 // Define Redis connection options
@@ -25,8 +25,8 @@ const redisOptions = {
       const baseDelay = redisConfig.REDIS_RETRY_DELAY || 100;
 
       if (retries > maxRetries) {
-        logger.error('Redis connection failed after maximum retries');
-        return new Error('Max retries reached');
+        logger.error("Redis connection failed after maximum retries");
+        return new Error("Max retries reached");
       }
 
       // Exponential backoff with jitter
@@ -35,14 +35,16 @@ const redisOptions = {
         5000 // Max 5 seconds
       );
 
-      logger.info(`Redis reconnecting attempt ${retries}, next try in ${delay}ms`);
+      logger.info(
+        `Redis reconnecting attempt ${retries}, next try in ${delay}ms`
+      );
       return delay;
-    }
+    },
   },
   enableOfflineQueue: true, // Buffer commands during disconnects
   maxRetriesPerRequest: null, // Retry forever
   connectTimeout: redisConfig.REDIS_CONNECT_TIMEOUT, // Connection timeout
-  tls: redisConfig.REDIS_TLS_ENABLED ? {} : undefined // Enable TLS if configured
+  tls: redisConfig.REDIS_TLS_ENABLED ? {} : undefined, // Enable TLS if configured
 };
 
 // Create a mock Redis client for development if Redis is not available
@@ -50,12 +52,14 @@ class MockRedis {
   constructor() {
     this.store = new Map();
     this.connected = true;
-    logger.info('Using mock Redis client - data will not persist between restarts');
+    logger.info(
+      "Using mock Redis client - data will not persist between restarts"
+    );
   }
 
   // Add ping method for connection testing
   async ping() {
-    return 'PONG';
+    return "PONG";
   }
 
   async get(key) {
@@ -63,15 +67,15 @@ class MockRedis {
   }
 
   async set(key, value, ...args) {
-    if (args.length > 0 && args[0] === 'EX') {
+    if (args.length > 0 && args[0] === "EX") {
       this.store.set(key, value);
       setTimeout(() => {
         this.store.delete(key);
       }, args[1] * 1000);
-      return 'OK';
+      return "OK";
     }
     this.store.set(key, value);
-    return 'OK';
+    return "OK";
   }
 
   async del(key) {
@@ -127,7 +131,7 @@ class MockRedis {
       },
       exec: async () => {
         return [];
-      }
+      },
     };
   }
 
@@ -146,33 +150,35 @@ try {
         host: redisConfig.REDIS_HOST,
         port: redisConfig.REDIS_PORT,
         password: redisConfig.REDIS_PASSWORD,
-        ...redisOptions
+        ...redisOptions,
       });
 
   // Connection event handlers
-  redisClient.on('connect', () => {
-    logger.info('Redis connected');
+  redisClient.on("connect", () => {
+    logger.info("Redis connected");
   });
 
-  redisClient.on('ready', () => {
-    logger.info('Redis ready');
+  redisClient.on("ready", () => {
+    logger.info("Redis ready");
   });
 
-  redisClient.on('reconnecting', () => {
-    logger.warn('Redis reconnecting...');
+  redisClient.on("reconnecting", () => {
+    logger.warn("Redis reconnecting...");
   });
 
-  redisClient.on('error', (error) => {
-    logger.error('Redis error', { error: error.message });
+  redisClient.on("error", (error) => {
+    logger.error("Redis error", { error: error.message });
   });
 
-  redisClient.on('end', () => {
-    logger.warn('Redis connection closed');
+  redisClient.on("end", () => {
+    logger.warn("Redis connection closed");
   });
 
   redis = redisClient;
 } catch (error) {
-  logger.warn('Redis connection failed, falling back to mock implementation', { error: error.message });
+  logger.warn("Redis connection failed, falling back to mock implementation", {
+    error: error.message,
+  });
   redis = new MockRedis();
 }
 

@@ -1,8 +1,9 @@
-import redis from '../config/redis.js';
-import logger from '../config/logger.js';
+import redis from "../config/redis.js";
+import logger from "../config/logger.js";
 
 const DEFAULT_TTL = 3600; // 1 hour
-const DEFAULT_PREFIX = process.env.NODE_ENV === 'test' ? 'test:' : 'booklens-cache:';
+const DEFAULT_PREFIX =
+  process.env.NODE_ENV === "test" ? "test:" : "booklens-cache:";
 
 // Cache statistics for monitoring
 const cacheStats = {
@@ -10,7 +11,7 @@ const cacheStats = {
   misses: 0,
   errors: 0,
   sets: 0,
-  lastReset: Date.now()
+  lastReset: Date.now(),
 };
 
 /**
@@ -27,7 +28,7 @@ export const cache = {
       cacheStats.sets = 0;
       cacheStats.lastReset = Date.now();
       return { ...cacheStats };
-    }
+    },
   },
   /**
    * Get a value from cache
@@ -36,27 +37,33 @@ export const cache = {
    */
   get: async (key) => {
     try {
-      const prefixedKey = key.startsWith(DEFAULT_PREFIX) ? key : `${DEFAULT_PREFIX}${key}`;
+      const prefixedKey = key.startsWith(DEFAULT_PREFIX)
+        ? key
+        : `${DEFAULT_PREFIX}${key}`;
       const value = await redis.get(prefixedKey);
-      
+
       if (!value) {
         cacheStats.misses++;
         return null;
       }
-      
+
       cacheStats.hits++;
       try {
         return JSON.parse(value);
       } catch (e) {
+        logger.warn("JSON failed, returning raw value", {
+          error: e.message,
+          key,
+        });
         return value; // Return as-is if not JSON
       }
     } catch (error) {
       cacheStats.errors++;
-      logger.error('Cache get error', { key, error: error.message });
+      logger.error("Cache get error", { key, error: error.message });
       return null;
     }
   },
-  
+
   /**
    * Set a value in cache
    * @param {string} key - Cache key
@@ -70,19 +77,22 @@ export const cache = {
       if (value === null || value === undefined) {
         return false;
       }
-      
-      const prefixedKey = key.startsWith(DEFAULT_PREFIX) ? key : `${DEFAULT_PREFIX}${key}`;
-      const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
-      await redis.set(prefixedKey, stringValue, 'EX', ttl);
+
+      const prefixedKey = key.startsWith(DEFAULT_PREFIX)
+        ? key
+        : `${DEFAULT_PREFIX}${key}`;
+      const stringValue =
+        typeof value === "string" ? value : JSON.stringify(value);
+      await redis.set(prefixedKey, stringValue, "EX", ttl);
       cacheStats.sets++;
       return true;
     } catch (error) {
       cacheStats.errors++;
-      logger.error('Cache set error', { key, error: error.message });
+      logger.error("Cache set error", { key, error: error.message });
       return false;
     }
   },
-  
+
   /**
    * Delete a value from cache
    * @param {string} key - Cache key
@@ -93,11 +103,11 @@ export const cache = {
       await redis.del(key);
       return true;
     } catch (error) {
-      logger.error('Cache delete error', { key, error: error.message });
+      logger.error("Cache delete error", { key, error: error.message });
       return false;
     }
   },
-  
+
   /**
    * Set multiple cache entries with the same TTL
    * @param {Object} entries - Key-value pairs to cache
@@ -107,20 +117,21 @@ export const cache = {
   mset: async (entries, ttl = DEFAULT_TTL) => {
     try {
       const pipeline = redis.pipeline();
-      
+
       for (const [key, value] of Object.entries(entries)) {
-        const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
-        pipeline.set(key, stringValue, 'EX', ttl);
+        const stringValue =
+          typeof value === "string" ? value : JSON.stringify(value);
+        pipeline.set(key, stringValue, "EX", ttl);
       }
-      
+
       await pipeline.exec();
       return true;
     } catch (error) {
-      logger.error('Cache mset error', { error: error.message });
+      logger.error("Cache mset error", { error: error.message });
       return false;
     }
   },
-  
+
   /**
    * Get multiple values from cache
    * @param {Array<string>} keys - Array of cache keys
@@ -130,7 +141,7 @@ export const cache = {
     try {
       const values = await redis.mget(keys);
       const result = {};
-      
+
       keys.forEach((key, index) => {
         const value = values[index];
         if (value) {
@@ -138,19 +149,20 @@ export const cache = {
             result[key] = JSON.parse(value);
           } catch (e) {
             result[key] = value;
+            console.error(e);
           }
         } else {
           result[key] = null;
         }
       });
-      
+
       return result;
     } catch (error) {
-      logger.error('Cache mget error', { keys, error: error.message });
+      logger.error("Cache mget error", { keys, error: error.message });
       return {};
     }
   },
-  
+
   /**
    * Check if a key exists in cache
    * @param {string} key - Cache key
@@ -158,25 +170,29 @@ export const cache = {
    */
   exists: async (key) => {
     try {
-      const prefixedKey = key.startsWith(DEFAULT_PREFIX) ? key : `${DEFAULT_PREFIX}${key}`;
+      const prefixedKey = key.startsWith(DEFAULT_PREFIX)
+        ? key
+        : `${DEFAULT_PREFIX}${key}`;
       const result = await redis.exists(prefixedKey);
       return result === 1;
     } catch (error) {
-      logger.error('Cache exists error', { key, error: error.message });
+      logger.error("Cache exists error", { key, error: error.message });
       return false;
     }
   },
-  
+
   /**
    * Create a prefixed cache key
    * @param {string} key - Base key
    * @param {string} namespace - Optional namespace
    * @returns {string} - Prefixed key
    */
-  key: (key, namespace = '') => {
-    return namespace ? `${DEFAULT_PREFIX}${namespace}:${key}` : `${DEFAULT_PREFIX}${key}`;
+  key: (key, namespace = "") => {
+    return namespace
+      ? `${DEFAULT_PREFIX}${namespace}:${key}`
+      : `${DEFAULT_PREFIX}${key}`;
   },
-  
+
   /**
    * Flush all keys with the current prefix
    * @returns {Promise<boolean>} - Success status
@@ -184,16 +200,18 @@ export const cache = {
   flushPrefix: async () => {
     try {
       const keys = await redis.keys(`${DEFAULT_PREFIX}*`);
-      
+
       if (keys.length > 0) {
         await redis.del(...keys);
-        logger.info(`Flushed ${keys.length} keys with prefix ${DEFAULT_PREFIX}`);
+        logger.info(
+          `Flushed ${keys.length} keys with prefix ${DEFAULT_PREFIX}`
+        );
       }
-      
+
       return true;
     } catch (error) {
-      logger.error('Cache flush error', { error: error.message });
+      logger.error("Cache flush error", { error: error.message });
       return false;
     }
-  }
+  },
 };
