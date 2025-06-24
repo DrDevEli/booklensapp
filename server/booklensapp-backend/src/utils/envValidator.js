@@ -72,7 +72,7 @@ export function validatePort(varName) {
     throw new ValidationError(errorMessage);
   }
 
-  if (port < 1 || port > 75535) {
+  if (port < 1 || port > 65535) {
     const errorMessage = `Port number in ${varName} must be between 1 and 75535`;
     logger.error(errorMessage);
     throw new ValidationError(errorMessage);
