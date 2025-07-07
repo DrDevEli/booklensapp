@@ -1,33 +1,14 @@
-import axios from "axios";
 import { ApiError } from "../utils/errors.js";
-import redis from "../config/redis.js";
+import openLibraryService from "./openLibraryService.js";
 import logger from "../config/logger.js";
 
-const BOOK_API_ENDPOINT = process.env.BOOK_API_ENDPOINT;
-const API_KEY = process.env.BOOK_API_KEY;
-const ITEMS_PER_PAGE = parseInt(process.env.ITEMS_PER_PAGE || "10");
-const CACHE_TTL = parseInt(process.env.SEARCH_CACHE_TTL || "3600");
-
 class AdvancedSearchService {
-  constructor() {
-    this.axiosInstance = axios.create({
-      baseURL: BOOK_API_ENDPOINT,
-      timeout: parseInt(process.env.BOOK_API_TIMEOUT || "5000"),
-      headers: {
-        Authorization: `Bearer ${API_KEY}`,
-      },
-    });
-  }
-
   /**
    * Perform advanced book search with multiple filters
    * @param {Object} params - Search parameters
    * @param {string} [params.title] - Title to search
    * @param {string} [params.author] - Author name
-   * @param {string} [params.genre] - Genre filter
-   * @param {string} [params.publishedAfter] - Published after date (YYYY-MM-DD)
-   * @param {string} [params.publishedBefore] - Published before date (YYYY-MM-DD)
-   * @param {string} [params.sortBy] - Sort field
+   * @param {string} [params.genre] - Genre filter (maps to subjects in Open Library)
    * @param {number} [params.page=1] - Page number
    * @returns {Promise<Object>} Search results with pagination
    */
@@ -35,109 +16,61 @@ class AdvancedSearchService {
     title,
     author,
     genre,
-    publishedAfter,
-    publishedBefore,
-    sortBy,
     page = 1,
   }) {
+    if (!title && !author && !genre) {
+      throw new ApiError(400, "At least one search parameter must be provided");
+    }
+
     try {
-      // Validate at least one search parameter is provided
-      if (!title && !author && !genre && !publishedAfter && !publishedBefore) {
-        throw new ApiError(
-          400,
-          "At least one search parameter must be provided"
-        );
-      }
-
-      // Validate individual parameters that shouldn't be empty
-      if (title && title.trim().length === 0) {
-        throw new ApiError(400, "Title cannot be empty if provided");
-      }
-      if (author && author.trim().length === 0) {
-        throw new ApiError(400, "Author cannot be empty if provided");
-      }
-      if (genre && genre.trim().length === 0) {
-        throw new ApiError(400, "Genre cannot be empty if provided");
-      }
-      // Create a cache key based on all search parameters
-      const cacheKey = `search:advanced:${JSON.stringify({
-        title,
-        author,
+      logger.info("Performing advanced search using Open Library API", { 
+        title, 
+        author, 
         genre,
-        publishedAfter,
-        publishedBefore,
-        sortBy,
-        page,
-      })}`;
+        page
+      });
 
-      // Check cache first
-      const cached = await redis.get(cacheKey);
-      if (cached) {
-        logger.debug("Advanced search cache hit", { cacheKey });
-        return JSON.parse(cached);
+      // For Open Library, we'll use the basic search but can enhance with genre filtering
+      // Open Library doesn't have direct genre support, but we can search by subject
+      let searchTitle = title;
+      let searchAuthor = author;
+      
+      // If genre is specified, we can add it to the search query
+      if (genre) {
+        if (searchTitle) {
+          searchTitle = `${searchTitle} subject:${genre}`;
+        } else if (searchAuthor) {
+          searchAuthor = `${searchAuthor} subject:${genre}`;
+        } else {
+          // If only genre is provided, search by subject
+          searchTitle = `subject:${genre}`;
+        }
       }
 
-      logger.debug("Advanced search cache miss", { cacheKey });
+      const result = await openLibraryService.search({ 
+        title: searchTitle, 
+        author: searchAuthor, 
+        page 
+      });
+      
+      logger.info("Advanced search completed successfully", { 
+        resultCount: Array.isArray(result.data) ? result.data.length : 0,
+        totalResults: result.pagination?.totalResults || 0
+      });
 
-      // Build query parameters
-      const params = { page, itemsPerPage: ITEMS_PER_PAGE };
-      if (title) params.title = title;
-      if (author) params.author = author;
-      if (genre) params.genre = genre;
-      if (publishedAfter) params.publishedAfter = publishedAfter;
-      if (publishedBefore) params.publishedBefore = publishedBefore;
-      if (sortBy) params.sortBy = sortBy;
-
-      const response = await this.axiosInstance.get("/books", { params });
-      const formattedResponse = this.formatResponse(response, page);
-
-      // Cache the response
-      await redis.set(
-        cacheKey,
-        JSON.stringify(formattedResponse),
-        "EX",
-        CACHE_TTL
-      );
-
-      return formattedResponse;
+      return result;
     } catch (error) {
       logger.error("Advanced search error", {
         error: error.message,
-        params: {
-          title,
-          author,
-          genre,
-          publishedAfter,
-          publishedBefore,
-          sortBy,
-          page,
-        },
+        title,
+        author,
+        genre,
+        page
       });
-      throw this.handleError(error);
+
+      // Re-throw the error as it's already an ApiError from the Open Library service
+      throw error;
     }
-  }
-
-  formatResponse(response, currentPage) {
-    if (!response.data.items?.length) {
-      throw new ApiError(404, "No books found matching your search criteria");
-    }
-
-    return {
-      data: response.data.items,
-      pagination: {
-        currentPage,
-        totalPages: Math.ceil(response.data.totalItems / ITEMS_PER_PAGE),
-        totalItems: response.data.totalItems,
-      },
-    };
-  }
-
-  handleError(error) {
-    return new ApiError(
-      error.response?.status || 500,
-      error.response?.data?.message ||
-        "Advanced book search service unavailable"
-    );
   }
 }
 

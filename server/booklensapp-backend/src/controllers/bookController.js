@@ -1,123 +1,45 @@
-import bookSearchService from "../services/bookSearchService.js";
+import BookSearchService from "../services/bookSearchService.js";
 import advancedSearchService from "../services/advancedSearchService.js";
+import openLibraryService from "../services/openLibraryService.js";
 import { ApiError } from "../utils/errors.js";
-import redis from "../utils/redis.js";
+import redis from "../config/redis.js";
 import logger from "../config/logger.js";
 import Book from "../models/Book.js";
 
 class BookController {
   static async searchBooks(req, res, next) {
     try {
-      const { q, page = 1 } = req.query;
-      if (!q) throw new ApiError(400, 'Query parameter "q" is required');
+      const { title, author, page = 1 } = req.query;
+      if (!title && !author) throw new ApiError(400, 'At least one of "title" or "author" is required');
 
-      const cacheKey = `search:author:${q}:${page}`;
+      const cacheKey = `search:${title || ''}:${author || ''}:${page}`;
       const cached = await redis.get(cacheKey);
       if (cached) {
         const parsed = JSON.parse(cached);
-        return res.json({
-          success: true,
-          books: parsed.data,
-          pagination: parsed.pagination,
-        });
+        return res.json({ success: true, ...parsed });
       }
 
-      const result = await bookSearchService.search({
-        query: q,
-        searchType: "author",
-        page: parseInt(page),
-      });
-
+      const result = await new BookSearchService().search({ title, author, page: parseInt(page) });
       await redis.set(cacheKey, JSON.stringify(result), "EX", 3600); // cache 1 hour
-
-      res.json({
-        success: true,
-        books: result.data,
-        pagination: result.pagination,
-      });
+      res.json({ success: true, ...result });
     } catch (error) {
       next(error);
     }
   }
 
-  static async searchBooksByTitle(req, res) {
-    try {
-      const { title, page = 1 } = req.query;
-      const cacheKey = `search:title:${title}:${page}`;
-      const cached = await redis.get(cacheKey);
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        return res.render("books", {
-          data: parsed.data,
-          query: title,
-          searchType: "title",
-        });
-      }
-
-      const result = await bookSearchService.search({
-        query: title,
-        searchType: "title",
-        page: parseInt(page),
-      });
-
-      await redis.set(cacheKey, JSON.stringify(result), "EX", 3600); // cache 1 hour
-
-      res.render("books", {
-        data: result.data,
-        query: title,
-        searchType: "title",
-      });
-    } catch (error) {
-      res.status(error.status || 500).render("books", {
-        error: error.message || "Title search failed",
-      });
-    }
-  }
-
   static async advancedSearch(req, res, next) {
     try {
-      const {
-        title,
-        author,
-        genre,
-        publishedAfter,
-        publishedBefore,
-        sortBy,
-        page = 1,
-      } = req.query;
-
-      // Validate that at least one search parameter is provided
-      if (!title && !author && !genre && !publishedAfter && !publishedBefore) {
+      const { title, author, genre, page = 1 } = req.query;
+      if (!title && !author && !genre) {
         throw new ApiError(400, "At least one search parameter is required");
       }
-
       const result = await advancedSearchService.advancedSearch({
         title,
         author,
         genre,
-        publishedAfter,
-        publishedBefore,
-        sortBy,
         page: parseInt(page),
       });
-
-      logger.info("Advanced search performed", {
-        params: { title, author, genre, publishedAfter, publishedBefore },
-        resultsCount: result.data.length,
-      });
-
-      return res.render("books", {
-        data: result.data,
-        pagination: result.pagination,
-        query: {
-          title,
-          author,
-          genre,
-          publishedAfter,
-          publishedBefore,
-          sortBy,
-        },
-      });
+      res.json({ success: true, ...result });
     } catch (error) {
       logger.error("Advanced search error", { error: error.message });
       next(error);
@@ -127,39 +49,75 @@ class BookController {
   static async getBookById(req, res, next) {
     try {
       const { id } = req.params;
-      // Try to find the book in the local database
+      
+      // Try to find the book in the local database first
       let book = await Book.findById(id);
       if (book) {
         return res.status(200).json({ success: true, data: book });
       }
-      // If not found, try to find by externalId
+      
+      // If not found locally, try to find by externalId
       book = await Book.findOne({ externalId: id });
       if (book) {
         return res.status(200).json({ success: true, data: book });
       }
-      // If still not found, fetch from external API
-      // Assume the external API endpoint is /books/:id
+      
+      // If not found locally, try to fetch from Open Library
       try {
-        const api = new bookSearchService();
-        const response = await api.axiosInstance.get(`/books/${id}`);
-        if (response?.data) {
-          return res.status(200).json({ success: true, data: response.data });
+        // Check if the ID looks like an Open Library work ID
+        let workId = id;
+        if (!workId.startsWith('/works/')) {
+          workId = `/works/${workId}`;
         }
-      } catch (apiError) {
-        // If API returns 404, treat as not found
-        if (apiError.response && apiError.response.status === 404) {
-          return res
-            .status(404)
-            .json({ success: false, message: "Book not found" });
-        }
-        // Otherwise, propagate error
-        return next(apiError);
+        
+        const openLibraryBook = await openLibraryService.getBookDetails(workId);
+        
+        // Optionally save to local database for future use
+        const newBook = new Book({
+          title: openLibraryBook.title,
+          authors: openLibraryBook.authorNames,
+          description: openLibraryBook.description,
+          coverImage: openLibraryBook.coverImage,
+          externalId: openLibraryBook.id,
+          openLibraryKey: openLibraryBook.openLibraryKey,
+          firstPublishYear: openLibraryBook.firstPublishYear,
+          subjects: openLibraryBook.subjects
+        });
+        
+        await newBook.save();
+        
+        return res.status(200).json({ success: true, data: openLibraryBook });
+      } catch (openLibraryError) {
+        logger.error("Error fetching from Open Library", { 
+          error: openLibraryError.message, 
+          bookId: id 
+        });
+        
+        // If Open Library also fails, return not found
+        return res.status(404).json({ 
+          success: false, 
+          message: "Book not found in local database or Open Library" 
+        });
       }
-      // If not found anywhere
-      return res
-        .status(404)
-        .json({ success: false, message: "Book not found" });
     } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getAuthorDetails(req, res, next) {
+    try {
+      const { authorId } = req.params;
+      
+      // Check if the ID looks like an Open Library author ID
+      let authorKey = authorId;
+      if (!authorKey.startsWith('/authors/')) {
+        authorKey = `/authors/${authorKey}`;
+      }
+      
+      const authorDetails = await openLibraryService.getAuthorDetails(authorKey);
+      res.status(200).json({ success: true, data: authorDetails });
+    } catch (error) {
+      logger.error("Error fetching author details", { error: error.message });
       next(error);
     }
   }

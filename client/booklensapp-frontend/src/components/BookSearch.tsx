@@ -1,51 +1,101 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useForm } from "react-hook-form";
+import api from '../api';
 
 interface BookSearchForm {
   title: string;
   author: string;
 }
 
+interface Book {
+  id: string;
+  title: string;
+  authors: string[];
+  firstPublishYear?: number;
+  coverImage?: string;
+  editionCount?: number;
+  hasFullText?: boolean;
+  ratingsAverage?: number;
+  ratingsCount?: number;
+  openLibraryKey: string;
+}
+
+interface Pagination {
+  currentPage: number;
+  totalPages: number;
+  totalResults: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
 export function BookSearch() {
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<Book[]>([]);
+  const [pagination, setPagination] = useState<Pagination | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { register, handleSubmit, formState: { errors } } = useForm<BookSearchForm>();
 
   const onSubmit = async (data: BookSearchForm) => {
+    setLoading(true);
+    setError(null);
+    setSearchResults([]);
+    setPagination(null);
+    
     try {
-      const searchQuery = `${data.title} ${data.author}`.trim();
-      const params = new URLSearchParams({
-        q: searchQuery
-      }).toString();
-      const res = await fetch(`http://localhost:3001/api/books/search?${params}`, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        },
-      });
-  
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
-      const json = await res.json();
-      if (json.success) {
-        setSearchResults(json.books);
+      const params = new URLSearchParams();
+      if (data.title) params.append('title', data.title);
+      if (data.author) params.append('author', data.author);
+
+      const response = await api.get(`/books/search?${params.toString()}`);
+      
+      if (response.data.success) {
+        setSearchResults(response.data.data || []);
+        setPagination(response.data.pagination || null);
+
+        if (!response.data.data || response.data.data.length === 0) {
+          setError("No books found matching your search.");
+        }
       } else {
-        console.error(json.error);
-        setSearchResults([]);
+        setError("Search failed. Please try again.");
       }
-    } catch (err) {
-      console.error("Error fetching books:", err);
-      if (err instanceof Error) {
-        console.error("Error details:", err.message);
+    } catch (err: any) {
+      console.error("Search error:", err);
+      if (err.response?.data?.message) {
+        setError(err.response.data.message);
+      } else {
+        setError(err.message || "Error fetching books.");
       }
-      setSearchResults([]);
+    } finally {
+      setLoading(false);
     }
   };
-  
+
+  const handlePageChange = async (page: number) => {
+    if (!pagination) return;
+    
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      // Re-construct search parameters (you might want to store these in state)
+      params.append('page', page.toString());
+      
+      const response = await api.get(`/books/search?${params.toString()}`);
+      
+      if (response.data.success) {
+        setSearchResults(response.data.data || []);
+        setPagination(response.data.pagination || null);
+      }
+    } catch (err: any) {
+      console.error("Page change error:", err);
+      setError("Failed to load page. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="container mx-auto p-4">
@@ -53,7 +103,7 @@ export function BookSearch() {
         <CardHeader>
           <CardTitle>Book Search</CardTitle>
           <CardDescription>
-            Search for books by title or author
+            Search for books by title or author using Open Library
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -63,11 +113,8 @@ export function BookSearch() {
               <Input
                 id="title"
                 placeholder="Enter book title"
-                {...register("title", { required: "Title is required" })}
+                {...register("title")}
               />
-              {errors.title && (
-                <p className="text-sm text-red-500">{errors.title.message}</p>
-              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="author">Author</Label>
@@ -77,31 +124,90 @@ export function BookSearch() {
                 {...register("author")}
               />
             </div>
-            <Button type="submit" className="w-full">
-              Search Books
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? "Searching..." : "Search Books"}
             </Button>
           </form>
         </CardContent>
       </Card>
 
+      {error && (
+        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-md">
+          <p className="text-red-600 text-center">{error}</p>
+        </div>
+      )}
+
       {searchResults.length > 0 && (
         <div className="mt-8 space-y-4">
+          <div className="text-center text-sm text-gray-600">
+            Found {pagination?.totalResults || searchResults.length} results
+          </div>
+          
           {searchResults.map((book) => (
-            <Card key={book.id}>
-              <CardHeader>
-                <CardTitle>{book.title}</CardTitle>
-                <CardDescription>By {book.author}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p>{book.description}</p>
-              </CardContent>
-              <CardFooter>
-                <Button variant="outline" className="w-full">
-                  View Details
-                </Button>
-              </CardFooter>
+            <Card key={book.id} className="overflow-hidden">
+              <div className="flex">
+                {book.coverImage && (
+                  <div className="w-24 h-32 flex-shrink-0">
+                    <img
+                      src={book.coverImage}
+                      alt={book.title}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+                <div className="flex-1 p-4">
+                  <CardHeader className="p-0 pb-2">
+                    <CardTitle className="text-lg">{book.title}</CardTitle>
+                    <CardDescription>
+                      By {book.authors.join(', ')}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-0 pb-2">
+                    <div className="space-y-1 text-sm text-gray-600">
+                      {book.firstPublishYear && (
+                        <p>Published: {book.firstPublishYear}</p>
+                      )}
+                      {book.editionCount && (
+                        <p>Editions: {book.editionCount}</p>
+                      )}
+                      {book.ratingsAverage && (
+                        <p>Rating: {book.ratingsAverage.toFixed(1)} ({book.ratingsCount} ratings)</p>
+                      )}
+                    </div>
+                  </CardContent>
+                  <CardFooter className="p-0">
+                    <Button variant="outline" size="sm">
+                      View Details
+                    </Button>
+                  </CardFooter>
+                </div>
+              </div>
             </Card>
           ))}
+          
+          {pagination && pagination.totalPages > 1 && (
+            <div className="flex justify-center gap-2 mt-6">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!pagination.hasPreviousPage || loading}
+                onClick={() => handlePageChange(pagination.currentPage - 1)}
+              >
+                Previous
+              </Button>
+              <span className="flex items-center px-3 text-sm">
+                Page {pagination.currentPage} of {pagination.totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!pagination.hasNextPage || loading}
+                onClick={() => handlePageChange(pagination.currentPage + 1)}
+              >
+                Next
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </div>

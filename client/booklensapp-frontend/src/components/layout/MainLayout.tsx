@@ -14,13 +14,14 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b">
+    <div className="min-h-screen bg-background font-sans" style={{ backgroundImage: 'url(/booklens_pattern1.png)', backgroundSize: 'cover', backgroundRepeat: 'no-repeat', backgroundPosition: 'center' }}>
+      <header className="border-b bg-opacity-90 backdrop-blur">
         <div className="container mx-auto px-4">
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center gap-6">
-              <Link to="/" className="text-2xl font-bold">
-                BookLens
+              <Link to="/" className="flex items-center gap-2">
+                <img src="/booklens_logo_option3.png" alt="BookLens Logo" className="h-10 w-auto" />
+                <span className="text-2xl font-heading text-primary" style={{ fontFamily: 'Montserrat, sans-serif' }}>BookLens</span>
               </Link>
               <nav className="hidden md:flex gap-6">
                 {navItems.map((item) => (
@@ -32,6 +33,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
                         ? 'text-primary'
                         : 'text-muted-foreground'
                     }`}
+                    style={{ fontFamily: 'Open Sans, sans-serif' }}
                   >
                     {item.label}
                   </Link>

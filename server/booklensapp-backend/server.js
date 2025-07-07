@@ -242,26 +242,14 @@ const startServer = () => {
 
   return server;
 };
-
-// Initialize application
 (async () => {
-  // Validate Redis configuration
-  const redisConfigValid = validateRedisConfig();
-  if (!redisConfigValid) {
-    logger.warn(
-      "Redis configuration is invalid. Cache features may not work properly."
-    );
-  }
-
-  // Try to connect to MongoDB but don't block server startup
-  connectWithRetry().then((connected) => {
-    if (!connected) {
-      logger.warn(
-        "Starting server without MongoDB connection. Some features will be unavailable."
-      );
-    }
+  const connected = await connectWithRetry();
+  if (connected) {
     startServer();
-  });
+  } else {
+    logger.error("Could not start server due to MongoDB connection failure");
+    process.exit(1);
+  }
 })();
 
 export default app;
