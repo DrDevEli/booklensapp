@@ -37,6 +37,9 @@ module.exports = {
         white: '#FFFFFF',
         darkgray: '#333333',
         lightgray: '#CCCCCC',
+        border: 'hsl(var(--border))',
+        background: 'hsl(var(--background))',
+        foreground: 'hsl(var(--foreground))',
       },
       fontFamily: {
         sans: ['Montserrat', 'Open Sans', 'Lato', 'ui-sans-serif', 'system-ui'],
