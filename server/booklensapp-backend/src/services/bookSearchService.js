@@ -3,7 +3,7 @@ import openLibraryService from "./openLibraryService.js";
 import { searchGutendex } from "./gutendexService.js";
 import { searchGoogleBooks } from "./googleBooksService.js";
 import amazonAffiliateService from "./amazonAffiliateService.js";
-import booklookerService from "./booklookerService.js";
+import booklookerService from "./bookLookerService.js";
 import logger from "../config/logger.js";
 
 export default class BookSearchService {
