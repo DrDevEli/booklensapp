@@ -10,7 +10,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
       <input
         type={type}
         className={cn(
-          "flex h-10 w-full rounded-full border-2 border-lightteal bg-white px-4 py-2 text-base font-body shadow-sm transition-colors placeholder:text-lightgray focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 disabled:cursor-not-allowed disabled:opacity-50",
+          "flex h-8 w-full rounded-full border-2 border-lightteal bg-white px-3 py-1 text-sm font-body shadow-sm transition-colors placeholder:text-lightgray focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 disabled:cursor-not-allowed disabled:opacity-50",
           className
         )}
         style={{ fontFamily: 'Open Sans, sans-serif' }}

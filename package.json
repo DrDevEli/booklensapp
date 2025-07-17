@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "passport-jwt": "^4.0.1",
+    "rate-limiter-flexible": "^7.1.1"
+  }
+}

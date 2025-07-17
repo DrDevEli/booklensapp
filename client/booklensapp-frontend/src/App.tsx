@@ -1,52 +1,25 @@
-import React, { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Route, Routes, useParams, Navigate } from 'react-router-dom';
-import api from './api';
-import { isAuthenticated } from './auth';
+import React from 'react';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import { MainLayout } from './components/layout/MainLayout';
 import { Home } from './pages/Home';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
+import { Collections } from './pages/Collections';
+import { CollectionDetail } from './pages/CollectionDetail';
+import { Profile } from './pages/Profile';
+import { BookDetails } from './pages/BookDetails';
 import { BookSearch } from './components/BookSearch';
+import { Toaster } from './components/ui/toaster';
+import { isAuthenticated } from './auth';
+import Category from './pages/Category';
 
 // ProtectedRoute component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   if (!isAuthenticated()) {
-    return <Navigate to="/login" />;
+    return <Navigate to="/login" state={{ from: window.location.pathname }} />;
   }
   return <>{children}</>;
 };
-
-// BookDetails component with API integration
-const BookDetails = () => {
-  const { id } = useParams<{ id: string }>();
-  const [book, setBook] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchBook = async () => {
-      try {
-        const response = await api.get(`/books/${id}`);
-        setBook(response.data.data);
-      } catch (err) {
-        setError('Failed to fetch book details');
-      }
-    };
-    fetchBook();
-  }, [id]);
-
-  if (error) return <div>{error}</div>;
-  if (!book) return <div>Loading...</div>;
-
-  return (
-    <div>
-      <h1>{book.title}</h1>
-      <p>Author: {book.authors.join(', ')}</p>
-      <p>Description: {book.description}</p>
-    </div>
-  );
-};
-
-const Collections = () => <div>Collections Page</div>;
 
 function App() {
   return (
@@ -58,6 +31,7 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/search" element={<BookSearch />} />
           <Route path="/books/:id" element={<BookDetails />} />
+          <Route path="/category" element={<Category />} />
           <Route
             path="/collections"
             element={
@@ -66,8 +40,25 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/collections/:id"
+            element={
+              <ProtectedRoute>
+                <CollectionDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </MainLayout>
+      <Toaster />
     </Router>
   );
 }

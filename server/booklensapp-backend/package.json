@@ -15,16 +15,27 @@
     "check-ports": "node scripts/check-ports.js"
   },
   "dependencies": {
+    "axios": "^1.10.0",
+    "bcryptjs": "^3.0.2",
     "compression": "^1.7.4",
     "cors": "^2.8.5",
     "dotenv": "^16.0.3",
     "express": "^4.18.2",
+    "express-rate-limit": "^7.5.1",
+    "helmet": "^8.1.0",
+    "ioredis": "^5.6.1",
     "joi": "^17.13.3",
     "mongoose": "^7.0.3",
+    "nodemailer": "^7.0.5",
+    "openpgp": "^6.1.1",
     "passport": "^0.6.0",
+    "passport-local": "^1.0.0",
+    "speakeasy": "^2.0.0",
     "swagger-autogen": "^2.23.7",
     "swagger-jsdoc": "^6.2.8",
-    "swagger-ui-express": "^4.6.3"
+    "swagger-ui-express": "^4.6.3",
+    "uuid": "^11.1.0",
+    "winston": "^3.17.0"
   },
   "devDependencies": {
     "@babel/core": "^7.21.4",

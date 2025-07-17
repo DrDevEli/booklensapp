@@ -18,28 +18,20 @@ module.exports = {
     },
     extend: {
       colors: {
-        primary: {
-          DEFAULT: '#4A007F', // Deep Purple
-          foreground: '#FFFFFF',
+        primary: '#7C3AED', // Vivid Violet
+        secondary: '#FBBF24', // Golden Amber
+        background: '#F5F3FF', // Soft Lavender
+        surface: '#FFFFFF', // White
+        muted: '#E0E7FF', // Pale Periwinkle
+        text: {
+          primary: '#1E293B', // Slate
+          secondary: '#64748B', // Grayish Blue
         },
-        teal: {
-          DEFAULT: '#00E6E6', // Bright Teal
-        },
-        secondary: {
-          DEFAULT: '#007F7F', // Medium Blue
-        },
-        lightpurple: {
-          DEFAULT: '#8000FF', // Light Purple
-        },
-        lightteal: {
-          DEFAULT: '#80FFFF', // Light Teal
-        },
-        white: '#FFFFFF',
-        darkgray: '#333333',
-        lightgray: '#CCCCCC',
-        border: 'hsl(var(--border))',
-        background: 'hsl(var(--background))',
-        foreground: 'hsl(var(--foreground))',
+        success: '#10B981', // Emerald
+        error: '#EF4444', // Red
+        info: '#38BDF8', // Sky Blue
+        border: '#E5E7EB', // Light gray for borders
+        foreground: '#1E293B', // Slate for foreground text
       },
       fontFamily: {
         sans: ['Montserrat', 'Open Sans', 'Lato', 'ui-sans-serif', 'system-ui'],

@@ -176,7 +176,7 @@ export function getEnvConfig(config = {}) {
       } else if (type === "json") {
         try {
           value = JSON.parse(value);
-        } catch (_error) {
+        } catch {
           logger.error(`Invalid JSON in environment variable ${key}`);
           value = defaultValue;
         }

@@ -1,7 +1,7 @@
 import express from "express";
 import BookController from "../controllers/bookController.js";
-import { authMiddleware } from "../middleware/authMiddleware.js";
 import rateLimiterMiddleware from "../middleware/rateLimiter.js";
+import { authMiddleware } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
@@ -31,6 +31,15 @@ router.get(
   "/author/:authorId",
   rateLimiterMiddleware,
   BookController.getAuthorDetails
+);
+
+// Example protected route (add a book)
+router.post(
+  "/",
+  authMiddleware(),
+  (req, res) => {
+    res.status(200).json({ success: true, message: "This is a protected route. Only authenticated users can access it." });
+  }
 );
 
 export default router;

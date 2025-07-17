@@ -12,13 +12,16 @@ import securityMiddleware from "./src/middleware/security.js";
 import {
   validateEnv,
   getEnvConfig,
-  validateRedisConfig,
+  validateRedisConfig
 } from "./src/utils/envValidator.js";
 import swaggerUi from "swagger-ui-express";
 import swaggerJsdoc from "swagger-jsdoc";
 
 // Load environment variables
 dotenv.config();
+
+// Validate Redis configuration
+validateRedisConfig();
 
 // Get configuration from environment
 const config = getEnvConfig({
