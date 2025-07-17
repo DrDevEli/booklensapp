@@ -24,6 +24,7 @@
     "lru-cache": "^11.1.0",
     "lucide-react": "^0.515.0",
     "passport": "^0.7.0",
+    "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
