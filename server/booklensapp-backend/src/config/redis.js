@@ -5,6 +5,7 @@ import { getEnvConfig } from "../../src/utils/envValidator.js";
 
 // Get Redis configuration from environment variables
 const redisConfig = getEnvConfig({
+  REDIS_URL: { default: "" },
   REDIS_HOST: { default: "localhost" },
   REDIS_PORT: { type: "number", default: "6379" },
   REDIS_PASSWORD: { default: "" },

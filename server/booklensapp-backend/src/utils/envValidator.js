@@ -121,6 +121,10 @@ export function validateNumericRange(varName, min, max) {
  */
 export function validateRedisConfig() {
   try {
+    // Accept REDIS_URL as a valid config
+    if (process.env.REDIS_URL) {
+      return true;
+    }
     const redisHost = process.env.REDIS_HOST;
     // const redisPort = process.env.REDIS_PORT;
     const redisPassword = process.env.REDIS_PASSWORD;
