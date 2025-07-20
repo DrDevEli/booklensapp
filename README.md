@@ -1,6 +1,6 @@
-# 📚 BookLens
+# 📚 BookPath
 
-**BookLens** is an AI-enhanced book discovery platform that helps users search, collect, and explore books, build personal libraries, and even merchandise book-related items — all through personalized recommendations and curated collections.
+**BookPath** is an AI-enhanced book discovery platform that helps users search, collect, and explore books, build personal libraries, and even merchandise book-related items — all through personalized recommendations and curated collections.
 
 ---
 
@@ -29,7 +29,7 @@
 
 ```bash
 # Clone and enter the project
-git clone https://github.com/your-user/booklens.git
+git clone https://github.com/drdeveli/bookpath.git
 cd booklens
 
 # Install backend dependencies
